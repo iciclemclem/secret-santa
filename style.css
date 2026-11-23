@@ -1,0 +1,58 @@
+:root{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#15392d;background:#f5f4ed}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top left,#dcece0,transparent 32%),radial-gradient(circle at bottom right,#f6e5d7,transparent 36%),#f5f4ed}main{max-width:680px;margin:0 auto;padding:28px 18px 40px}.snow{text-align:center;color:#aa8661;letter-spacing:16px;font-size:16px}header{text-align:center;margin:8px 0 24px}.emblem{font-size:47px}.eyebrow{font-weight:800;letter-spacing:3px;font-size:11px;color:#92765b;margin:10px 0 2px}h1{font-family:Georgia,serif;font-size:clamp(44px,8vw,60px);font-weight:700;letter-spacing:-2px;margin:0;color:#154c38}.subtitle{color:#67776d;margin:8px 0 0}.card{background:#fff;border:1px solid #e5e8df;box-shadow:0 15px 45px #15392d10;border-radius:22px;padding:clamp(20px,5vw,32px);margin:14px 0}.card h2{font-family:Georgia,serif;font-size:27px;margin:0 0 7px}.hint{color:#697b72;font-size:14px;line-height:1.5;margin:5px 0 18px}label{font-size:13px;font-weight:700;display:block;margin:17px 0 7px}input{font:inherit;width:100%;border:1px solid #d9e1d9;border-radius:11px;padding:13px 14px;color:#173b2c;background:#fff}input:focus{outline:2px solid #9fc4a9;outline-offset:1px}.row{display:flex;gap:12px}.row>div{flex:1;min-width:0}button{font:inherit;cursor:pointer;border:0;border-radius:11px;padding:12px 16px;font-weight:700;transition:transform .12s}button:hover{transform:translateY(-1px)}button:disabled{opacity:.55;cursor:default}.primary{background:#1c6549;color:white;width:100%;margin-top:17px;padding:15px}.secondary{color:#1c6549;background:#e9f3ed}.outline{border:1px solid #ceded1;background:white;color:#1c6549}.danger{color:#984733;background:#fff0e9}.person{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid #e8eee8;background:#fafcf9;padding:9px 10px 9px 14px;border-radius:11px;margin:7px 0}.person button{padding:6px 10px}.add{display:flex;gap:8px}.add input{flex:1;min-width:0}.add button{white-space:nowrap}.notice{padding:14px;border-radius:12px;background:#edf5ee;color:#285c42;font-size:14px;line-height:1.5;margin:16px 0}.error{padding:12px;border-radius:10px;color:#913b30;background:#fce9e6;margin:14px 0;font-size:14px}.linklist{display:grid;gap:10px;margin-top:20px}.linkitem{padding:13px;border:1px solid #dce5df;border-radius:12px;display:flex;gap:10px;align-items:center;justify-content:space-between}.linkitem b{display:block}.linkitem small{display:block;color:#75877b}.linkitem button{font-size:13px;white-space:nowrap}.celebrate{font-size:50px;text-align:center;margin:20px 0 8px}.reveal{text-align:center;background:#eaf5ec;border:1px dashed #9dcaaa;border-radius:18px;padding:24px 12px;margin:18px 0}.reveal small{color:#557765}.reveal strong{font-family:Georgia,serif;display:block;font-size:clamp(33px,7vw,51px);color:#15583c;margin:8px 0}.detail{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #edf0eb;padding:12px 0}.detail span{color:#68776c}.detail strong{text-align:right}footer{text-align:center;color:#829087;font-size:12px;line-height:1.7;margin:22px 0}.small{font-size:13px;color:#718178}.center{text-align:center}.muted{color:#65766b}a{color:#1b6545}@media(max-width:430px){.row{flex-direction:column;gap:0}.linkitem{align-items:flex-start;flex-direction:column}.linkitem button{width:100%}}
+
+/* Ticket à gratter : couche canvas effacée au doigt ou à la souris. */
+.scratch-ticket{position:relative;height:190px;margin:20px 0 8px;border-radius:19px;overflow:hidden;border:2px solid #d4b978;background:#fff5db;box-shadow:0 9px 24px #14382a18;isolation:isolate}
+.scratch-prize{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;text-align:center;padding:14px;background:radial-gradient(circle at center,#fffdf0,#e7f3df);color:#174d38}
+.scratch-prize span:first-child{font-size:11px;letter-spacing:1.5px;font-weight:800}
+.scratch-prize strong{font-family:Georgia,serif;font-size:clamp(28px,7vw,46px);line-height:1.1;overflow-wrap:anywhere;max-width:100%}
+.scratch-sparkles{font-size:22px}
+.scratch-cover{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;transition:opacity .7s ease}
+.scratch-ticket.is-revealed .scratch-cover{opacity:0}
+.scratch-access{display:block;margin:0 auto 16px;background:transparent;color:#446b5b;text-decoration:underline;font-size:12px;padding:8px 12px}
+.scratch-access[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.scratch-cover{transition:none}}
+/* Secret Santa V2: thèmes, exclusions, souhaits et célébration. */
+select,textarea{font:inherit;width:100%;border:1px solid #d9e1d9;border-radius:11px;padding:12px;color:#173b2c;background:#fff}
+textarea{resize:vertical;line-height:1.5}
+h3{font-size:17px;margin:22px 0 9px}
+.exclusion-pair{display:inline-flex;align-items:center;gap:7px;margin:5px 9px 5px 0;padding:9px 11px;border:1px solid #e2e8df;border-radius:10px;background:#f9fbf8;font-weight:500;font-size:12px;cursor:pointer}
+.exclusion-pair input{width:16px;height:16px;accent-color:#1c6549;margin:0}
+.wishlist-panel{margin-top:20px;padding:17px;background:#f7faf5;border:1px solid #dce9d9;border-radius:14px}
+.wishlist-panel h3{margin-top:0}.wishlist-panel button{margin-top:10px}.wish-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+body[data-theme="rouge"]{background:radial-gradient(circle at top left,#f8e8df,transparent 35%),#fffaf0}
+body[data-theme="rouge"] h1{color:#94333a}body[data-theme="rouge"] .primary{background:#aa3b41}body[data-theme="rouge"] .scratch-ticket{border-color:#c79e45}
+body[data-theme="nuit"]{background:radial-gradient(circle at top,#263b64,#0d2032 80%);color:#f8eaca}
+body[data-theme="nuit"] .card{background:#f7f8ff;color:#173c3d}body[data-theme="nuit"] h1{color:#ffe5a6}body[data-theme="nuit"] .subtitle,body[data-theme="nuit"] footer{color:#d6dbe9}
+.confetti-layer,.snowfall{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:100}
+.confetti-layer i{position:absolute;top:-20px;width:10px;height:15px;animation:confetti-drop 3s linear forwards;transform:rotate(20deg)}
+.snowfall{z-index:0;opacity:.4}.snowfall span{position:absolute;top:-25px;color:#a9cddd;animation:snow-fall 11s linear infinite}
+main{position:relative;z-index:1}
+@keyframes confetti-drop{to{transform:translateY(110vh) rotate(760deg);opacity:0}}
+@keyframes snow-fall{to{transform:translate(35px,110vh)}}
+@media(prefers-reduced-motion:reduce){.confetti-layer,.snowfall{display:none}}
+
+/* V3 : tableau de bord organisateur et invitations WhatsApp */
+.progress-panel{padding:18px;background:linear-gradient(130deg,#eef8f0,#fbfdf9);border:1px solid #cde4d4;border-radius:16px;margin:18px 0}
+.progress-head{display:flex;justify-content:space-between;align-items:center;gap:15px}
+.progress-label{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#47705a}
+.progress-numbers{margin:5px 0 12px;font-size:13px;color:#597264}
+.progress-numbers strong{font-size:30px;color:#14603d;font-variant-numeric:tabular-nums}
+.progress-panel progress{display:block;width:100%;height:13px;accent-color:#238358;border:0;border-radius:30px;overflow:hidden}
+.progress-panel progress::-webkit-progress-bar{background:#dbe8de;border-radius:30px}
+.progress-panel progress::-webkit-progress-value{background:#238358;border-radius:30px}
+.progress-panel progress::-moz-progress-bar{background:#238358;border-radius:30px}
+.progress-panel .small{margin:12px 0 0}
+.small-button{font-size:12px;padding:9px 12px;white-space:nowrap}
+.section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:19px 0 4px}
+.section-heading h3{margin:0}.section-heading .small{white-space:nowrap}
+.invite-row{border:1px solid #dce5df;border-radius:14px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff}
+.invite-info{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
+.invite-info strong{overflow-wrap:anywhere}
+.status-chip{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-weight:600;font-size:11px;line-height:1.3}
+.status-pending{background:#f2f2ef;color:#6c746e}
+.status-done{background:#e0f4e7;color:#256c45}
+.invite-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.invite-actions button,.whatsapp-button{font-size:12px;padding:10px 11px;white-space:nowrap}
+.whatsapp-button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:11px;background:#168b52;color:white;font-weight:700;min-height:41px}
+.whatsapp-button:focus-visible{outline:3px solid #2a936a;outline-offset:2px}
+@media(max-width:530px){.invite-row{align-items:stretch;flex-direction:column}.invite-actions{display:grid;grid-template-columns:1fr 1fr}.invite-actions button,.whatsapp-button{width:100%}}
