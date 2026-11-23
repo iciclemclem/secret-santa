@@ -1,8 +1,8 @@
 {
   "name": "secret-santa-prive",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "private": true,
-  "description": "Secret Santa avec liens individuels privés",
+  "description": "Secret Santa V4 : liens privés, WhatsApp personnalisable, exclusions et identités festives",
   "scripts": {
     "start": "node server.js",
     "test": "node --test"
