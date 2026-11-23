@@ -1,0 +1,12 @@
+{
+  "name": "secret-santa-prive",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Secret Santa avec liens individuels privés",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
