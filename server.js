@@ -64,6 +64,7 @@ function assignment(n, exclusions = []) {
 const THEMES = ['foret','rouge','nuit'];
 function eventTheme(e){return THEMES.includes(e.theme)?e.theme:'foret';}
 function wishlistValue(p){return typeof p.wishlist==='string'?p.wishlist:'';}
+function revelationDate(p){return typeof p.revealedAt === 'string' && !Number.isNaN(Date.parse(p.revealedAt)) ? p.revealedAt : null;}
 function validDate(value) {
   if (value === '') return true;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -73,7 +74,7 @@ function validDate(value) {
 function organizerView(e) {
   return {
     title: e.title, budget: e.budget, date: e.date, drawn: e.drawn, theme: eventTheme(e), exclusions: e.exclusions || [],
-    participants: e.participants.map(p => ({ name: p.name, path: '/gift/' + p.token }))
+    participants: e.participants.map(p => ({ name: p.name, path: '/gift/' + p.token, revealedAt: revelationDate(p) }))
   };
 }
 const contentTypes = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8' };
@@ -108,7 +109,7 @@ const server = http.createServer(async (req, res) => {
       const uniqueExclusions=[...new Map(exclusions.map(p=>[p.join(':'),p])).values()];
       if(!assignment(names.length, uniqueExclusions))return error(res,400,'Ces exclusions rendent le tirage impossible. Assouplis certaines règles.');
       const key = id(), organizerToken = token();
-      events[key] = { title, budget, date, theme, exclusions: uniqueExclusions, organizerToken, drawn: false, participants: names.map(name => ({ name, token: token(), recipient: null, wishlist: '' })) };
+      events[key] = { title, budget, date, theme, exclusions: uniqueExclusions, organizerToken, drawn: false, participants: names.map(name => ({ name, token: token(), recipient: null, wishlist: '', revealedAt: null })) };
       save();
       return send(res, 201, { organizerPath: '/organize/' + organizerToken });
     }
@@ -127,11 +128,18 @@ const server = http.createServer(async (req, res) => {
         return send(res, 200, organizerView(e));
       }
     }
-    const giftMatch = pathname.match(/^\/api\/gift\/([A-Za-z0-9_-]+)$/);
-    if (giftMatch && (req.method === 'GET' || req.method === 'PATCH')) {
+    const giftMatch = pathname.match(/^\/api\/gift\/([A-Za-z0-9_-]+)(\/reveal)?$/);
+    if (giftMatch && (req.method === 'GET' || req.method === 'PATCH' || req.method === 'POST')) {
       for (const e of Object.values(events)) {
         const p = e.participants.find(p => p.token === giftMatch[1]);
         if (!p) continue;
+        if (req.method === 'POST' && giftMatch[2] === '/reveal') {
+          if (!e.drawn) return error(res, 409, 'Le tirage n’a pas encore eu lieu.');
+          // Idempotent : une fois le ticket découvert, la date ne change jamais.
+          if (!revelationDate(p)) { p.revealedAt = new Date().toISOString(); save(); }
+          return send(res, 200, { revealedAt: revelationDate(p) });
+        }
+        if (giftMatch[2] || (req.method !== 'GET' && req.method !== 'PATCH')) return error(res, 405, 'Méthode non autorisée.');
         if (req.method === 'PATCH') {
           const body = await readJSON(req);
           if(typeof body.wishlist !== 'string' || body.wishlist.length>1500)return error(res,400,'Liste de souhaits limitée à 1500 caractères.');
@@ -139,7 +147,7 @@ const server = http.createServer(async (req, res) => {
           return send(res,200,{wishlist:p.wishlist});
         }
         return send(res, 200, {
-          title:e.title,budget:e.budget,date:e.date,theme:eventTheme(e),giver:p.name,drawn:e.drawn,
+          title:e.title,budget:e.budget,date:e.date,theme:eventTheme(e),giver:p.name,drawn:e.drawn,revealedAt:revelationDate(p),
           wishlist:wishlistValue(p),
           recipient:e.drawn?e.participants[p.recipient].name:null,
           recipientWishlist:e.drawn?wishlistValue(e.participants[p.recipient]):''
