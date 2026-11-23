@@ -8,12 +8,38 @@ function message(text) { const el = document.getElementById('message'); if(el){e
 function fail(err) {message(err.message || String(err));}
 function card(html){root.innerHTML='<section class="card">'+html+'</section>';}
 function applyTheme(theme){document.body.dataset.theme=['foret','rouge','nuit'].includes(theme)?theme:'foret';}
-function celebrate(){
+// L'emoji de chaque participant influence aussi les couleurs et les décorations animées.
+const MOTIF_AMBIENCE={
+  foret:['🌲','🍃','✨'],hiver:['❄️','🧊','✨'],dore:['⭐','✨','💫'],
+  nuit:['✨','🌟','🌙'],gourmand:['🍬','✨','🍪'],fete:['🎉','🎊','✨']
+};
+function personalizedDecor(emoji,style){
+  const family=Object.hasOwn(MOTIF_AMBIENCE,style)?style:'fete';
+  document.body.dataset.emojiStyle=family;
+  document.querySelector('.emblem').textContent=emoji;
+  document.querySelector('.snow').textContent=emoji+'  ✧  '+emoji+'  ✧  '+emoji;
+  document.querySelector('.snowfall')?.remove();
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const sky=document.createElement('div');sky.className='emoji-sky';sky.dataset.style=family;sky.setAttribute('aria-hidden','true');
+  document.body.appendChild(sky);
+  const motifs=[emoji,emoji,emoji,...MOTIF_AMBIENCE[family]];
+  for(let i=0;i<20;i++){
+    const item=document.createElement('span');item.textContent=motifs[i%motifs.length];
+    item.style.left=(Math.random()*100)+'%';item.style.animationDelay=(-Math.random()*18)+'s';
+    item.style.animationDuration=(11+Math.random()*12)+'s';item.style.fontSize=(16+Math.random()*16)+'px';
+    sky.appendChild(item);
+  }
+}
+function celebrate(emoji='🎁',style='fete'){
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const layer=document.createElement('div');layer.className='confetti-layer';layer.setAttribute('aria-hidden','true');document.body.appendChild(layer);
   const colors=['#d3ad4d','#b53949','#237654','#f5e8c3','#8cbfda'];
-  for(let i=0;i<60;i++){
-    const bit=document.createElement('i');bit.style.left=(Math.random()*100)+'%';bit.style.background=colors[i%colors.length];bit.style.animationDelay=(Math.random()*.7)+'s';bit.style.animationDuration=(2+Math.random()*2)+'s';layer.appendChild(bit);
+  for(let i=0;i<78;i++){
+    const bit=document.createElement('i');bit.style.left=(Math.random()*100)+'%';
+    bit.style.animationDelay=(Math.random()*.7)+'s';bit.style.animationDuration=(2+Math.random()*2)+'s';
+    if(i%4===0){bit.className='motif-confetti';bit.textContent=i%8===0?emoji:(MOTIF_AMBIENCE[style]?.[i%3]||'✨');}
+    else bit.style.background=colors[i%colors.length];
+    layer.appendChild(bit);
   }
   setTimeout(()=>layer.remove(),5000);
 }
@@ -27,26 +53,98 @@ function snowfall(){
 snowfall();
 function home(){
   let names=[];let exclusions=new Set();
-  card(`<h2>Organise ton échange 🎄</h2><p class="hint">Crée ton événement, puis partage un lien secret avec chaque ami.</p><form id="eventForm"><label for="title">Nom de l'événement</label><input id="title" maxlength="100" value="Le Noël des copains" required><div class="row"><div><label for="budget">Budget maximum (€)</label><input id="budget" type="number" min="0" max="100000" step="0.01" value="25" required></div><div><label for="date">Date de remise (facultatif)</label><input id="date" type="date"></div></div><label for="theme">Ambiance de Noël</label><select id="theme"><option value="foret">🌲 Forêt traditionnelle</option><option value="rouge">🎄 Rouge & or</option><option value="nuit">🌙 Nuit étoilée</option></select><label for="name">Participants</label><div id="names"></div><div class="add"><input id="name" maxlength="60" placeholder="Prénom d'un ami" autocomplete="off"><button id="add" class="secondary" type="button">+ Ajouter</button></div><p class="small">Minimum 2 participants. Utilise une initiale pour distinguer les homonymes.</p><div id="exclusionSettings"><h3>❤️ Exclusions de tirage</h3><p class="small">Coche une paire pour empêcher ces deux amis de se tirer mutuellement.</p><div id="exclusionPairs"></div></div><p id="message" class="error" hidden></p><button class="primary" type="submit">Créer mon Secret Santa →</button></form>`);
+  card(`<h2>Organise ton échange 🎄</h2><p class="hint">Crée ton événement, puis invite les amis avant le tirage. Chacun recevra son propre symbole de Noël.</p>
+    <form id="eventForm">
+      <label for="title">Nom de l'événement</label><input id="title" maxlength="100" value="Le Noël des copains" required>
+      <div class="row"><div><label for="budget">Budget maximum (€)</label><input id="budget" type="number" min="0" max="100000" step="0.01" value="25" required></div><div><label for="date">Date de remise (facultatif)</label><input id="date" type="date"></div></div>
+      <label for="theme">Ambiance de Noël</label><select id="theme"><option value="foret">🌲 Forêt traditionnelle</option><option value="rouge">🎄 Rouge & or</option><option value="nuit">🌙 Nuit étoilée</option></select>
+      <label for="name">Participants</label><div id="names"></div>
+      <div class="add"><input id="name" maxlength="60" placeholder="Prénom d'un ami" autocomplete="off"><button id="add" class="secondary" type="button">+ Ajouter</button></div>
+      <p class="small">2 à 50 personnes. Chaque participant recevra un emoji de Noël différent après la création.</p>
+      <section id="exclusionSettings" class="exclusion-settings"><h3>❤️ Exclusions entre participants</h3><p class="small">Choisis deux personnes : elles ne pourront pas se tirer l'une l'autre.</p>
+        <div class="exclusion-picker"><div><label for="exclusionA">Participant 1</label><select id="exclusionA"></select></div><div><label for="exclusionB">Participant 2</label><select id="exclusionB"></select></div></div>
+        <button type="button" class="secondary add-exclusion" id="addExclusion">+ Ajouter l'exclusion</button>
+        <div id="exclusionPairs" class="exclusion-list" aria-live="polite"></div>
+      </section>
+      <p id="message" class="error" hidden role="alert"></p>
+      <button class="primary" type="submit">Créer mon Secret Santa →</button>
+    </form>`);
   const list=document.getElementById('names');
-  function renderNames(){list.replaceChildren();names.forEach((n,i)=>{const el=document.createElement('div');el.className='person';const span=document.createElement('span');span.textContent='🎅  '+n;const b=document.createElement('button');b.type='button';b.className='danger';b.textContent='Retirer';b.onclick=()=>{names.splice(i,1);exclusions.clear();renderNames();};el.append(span,b);list.appendChild(el);});renderExclusions();}
-  function renderExclusions(){
-    const wrap=document.getElementById('exclusionPairs');wrap.replaceChildren();
-    for(let i=0;i<names.length;i++)for(let j=i+1;j<names.length;j++){
-      const pair=i+':'+j, label=document.createElement('label');label.className='exclusion-pair';
-      const cb=document.createElement('input');cb.type='checkbox';cb.checked=exclusions.has(pair);
-      cb.onchange=()=>cb.checked?exclusions.add(pair):exclusions.delete(pair);
-      label.append(cb,document.createTextNode(names[i]+' ↔ '+names[j]));wrap.appendChild(label);
-    }
+  function renderNames(){
+    list.replaceChildren();
+    names.forEach((n,i)=>{
+      const el=document.createElement('div');el.className='person';
+      const span=document.createElement('span');span.textContent=String(i+1).padStart(2,'0')+' · '+n;
+      const b=document.createElement('button');b.type='button';b.className='danger';b.textContent='Retirer';
+      b.onclick=()=>{
+        names.splice(i,1);
+        // Préserver les autres exclusions lorsque l'on retire un participant.
+        exclusions=new Set([...exclusions].flatMap(pair=>{
+          const [a,b]=pair.split(':').map(Number);
+          if(a===i||b===i)return[];
+          return [`${a>i?a-1:a}:${b>i?b-1:b}`];
+        }));
+        renderNames();
+      };
+      el.append(span,b);list.appendChild(el);
+    });
+    renderExclusions();
   }
+  function renderExclusions(){
+    const pickerA=document.getElementById('exclusionA'),pickerB=document.getElementById('exclusionB');
+    const options='<option value="">Choisir une personne</option>'+names.map((n,i)=>`<option value="${i}">${esc(n)}</option>`).join('');
+    const selectedA=pickerA.value,selectedB=pickerB.value;
+    pickerA.innerHTML=options;pickerB.innerHTML=options;
+    if(selectedA!==''&&Number(selectedA)<names.length)pickerA.value=selectedA;
+    if(selectedB!==''&&Number(selectedB)<names.length)pickerB.value=selectedB;
+    document.getElementById('addExclusion').disabled=names.length<2;
+    const wrap=document.getElementById('exclusionPairs');wrap.replaceChildren();
+    if(!exclusions.size){const hint=document.createElement('p');hint.className='small';hint.textContent='Aucune exclusion définie.';wrap.appendChild(hint);return;}
+    [...exclusions].forEach(pair=>{
+      const [a,b]=pair.split(':').map(Number);
+      const row=document.createElement('div');row.className='exclusion-item';
+      const label=document.createElement('span');label.textContent='🚫 '+names[a]+' ↔ '+names[b];
+      const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='Retirer';
+      remove.setAttribute('aria-label','Retirer l’exclusion entre '+names[a]+' et '+names[b]);
+      remove.onclick=()=>{exclusions.delete(pair);renderExclusions();};
+      row.append(label,remove);wrap.appendChild(row);
+    });
+  }
+  document.getElementById('addExclusion').onclick=()=>{
+    const a=document.getElementById('exclusionA').value,b=document.getElementById('exclusionB').value;
+    if(a===''||b==='')return message('Sélectionne deux participants pour créer une exclusion.');
+    if(a===b)return message('Choisis deux participants différents.');
+    const [i,j]=[Number(a),Number(b)].sort((x,y)=>x-y),pair=i+':'+j;
+    if(exclusions.has(pair))return message('Cette exclusion existe déjà.');
+    exclusions.add(pair);message('');renderExclusions();
+    document.getElementById('exclusionA').value='';document.getElementById('exclusionB').value='';
+  };
   document.getElementById('theme').onchange=e=>applyTheme(e.target.value);
-  function add(){const input=document.getElementById('name');const n=input.value.trim();if(!n)return;if(names.some(x=>x.toLocaleLowerCase('fr')===n.toLocaleLowerCase('fr')))return message('Ce prénom est déjà présent.');if(names.length>=50)return message('Maximum 50 participants.');names.push(n);input.value='';message('');renderNames();input.focus();}
+  function add(){
+    const input=document.getElementById('name'),n=input.value.trim();if(!n)return;
+    if(names.some(x=>x.toLocaleLowerCase('fr')===n.toLocaleLowerCase('fr')))return message('Ce prénom est déjà présent.');
+    if(names.length>=50)return message('Maximum 50 participants.');
+    names.push(n);input.value='';message('');renderNames();input.focus();
+  }
   document.getElementById('add').onclick=add;
   document.getElementById('name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add();}});
-  document.getElementById('eventForm').onsubmit=async e=>{e.preventDefault();if(document.getElementById('name').value.trim())add();if(names.length<2)return message('Ajoute au moins 2 personnes.');const btn=e.target.querySelector('button[type="submit"]');btn.disabled=true;try{const data=await request('/api/events',{method:'POST',body:JSON.stringify({title:document.getElementById('title').value,budget:document.getElementById('budget').value,date:document.getElementById('date').value,names,theme:document.getElementById('theme').value,exclusions:[...exclusions].flatMap(k=>{const [i,j]=k.split(':').map(Number);return [[i,j],[j,i]];})})});location.assign(data.organizerPath);}catch(err){fail(err);btn.disabled=false;}};
+  document.getElementById('eventForm').onsubmit=async e=>{
+    e.preventDefault();if(document.getElementById('name').value.trim())add();
+    if(names.length<2)return message('Ajoute au moins 2 personnes.');
+    const btn=e.target.querySelector('button[type="submit"]');btn.disabled=true;
+    try{
+      const data=await request('/api/events',{method:'POST',body:JSON.stringify({
+        title:document.getElementById('title').value,budget:document.getElementById('budget').value,
+        date:document.getElementById('date').value,names,theme:document.getElementById('theme').value,
+        exclusions:[...exclusions].flatMap(k=>{const [i,j]=k.split(':').map(Number);return [[i,j],[j,i]];})
+      })});
+      location.assign(data.organizerPath);
+    }catch(err){fail(err);btn.disabled=false;}
+  };
+  renderNames();
 }
 
-// V3 — Invitations WhatsApp et suivi des découvertes, sans divulguer les attributions.
+// V4 — Liens privés partageables avant et après le tirage ; messages personnalisés et sauvegardés.
 async function copy(url, button){
   try {
     await navigator.clipboard.writeText(url);
@@ -57,12 +155,12 @@ async function copy(url, button){
 }
 const themeNames={foret:'Forêt',rouge:'Rouge & or',nuit:'Nuit étoilée'};
 const revealTime=s=>new Date(s).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-function invitationText(event,person){
-  return `Salut ${person.name} 🎄 !\n\nTu participes à « ${event.title} » 🎁\n`+
-    `Budget maximum : ${money(event.budget)}\n`+
-    (event.date?`Remise des cadeaux : ${formatDate(event.date)}\n`:'')+
-    `\nVoici TON lien secret :\n${location.origin+person.path}\n\n`+
-    `Gratte ton ticket pour découvrir à qui offrir un cadeau 🤫\nGarde ce lien personnel pour toi !`;
+function invitationText(event,person,template){
+  const values={
+    prenom:person.name,emoji:person.emoji||'🎁',evenement:event.title,
+    budget:money(event.budget),date:formatDate(event.date),lien:location.origin+person.path
+  };
+  return template.replace(/\{(prenom|emoji|evenement|budget|date|lien)\}/g,(_,key)=>values[key]);
 }
 let organizerRefreshTimer=null;
 let organizerFocusListener=null;
@@ -73,42 +171,94 @@ async function organize(key){
     const url='/api/organize/'+encodeURIComponent(key);
     const data=await request(url);
     applyTheme(data.theme);
+    const statusLabel=data.drawn?'Après le tirage':'Avant le tirage';
     card(`<h2>${esc(data.title)}</h2>
       <p class="hint">Espace organisateur · ${data.participants.length} participants</p>
       <div class="detail"><span>Budget</span><strong>${money(data.budget)}</strong></div>
       <div class="detail"><span>Remise des cadeaux</span><strong>${esc(formatDate(data.date))}</strong></div>
       <div class="notice">🎨 Thème : ${esc(themeNames[data.theme]||'Forêt')} · Exclusions : ${Math.floor((data.exclusions||[]).length/2)} paire(s).</div>
-      <div class="notice">🔐 <b>Conserve cette adresse organisateur en privé.</b> Elle donne accès à tous les liens individuels. WhatsApp ne recevra que le lien du participant choisi.</div>
+      <div class="notice">🔐 <b>Conserve cette adresse organisateur en privé.</b> Elle donne accès aux liens individuels. Tu peux inviter les amis ${data.drawn?'ou leur renvoyer leur lien':'dès maintenant, avant le tirage'}.</div>
       ${data.drawn?`<section class="progress-panel" aria-label="Suivi des découvertes">
         <div class="progress-head"><div><div class="progress-label">Suivi des découvertes</div><div class="progress-numbers"><strong id="revealedCount">0</strong><span> / ${data.participants.length} tickets découverts</span></div></div><button id="refresh" type="button" class="outline small-button">↻ Actualiser</button></div>
         <progress id="revealProgress" max="${data.participants.length}" value="0" aria-label="Participants ayant découvert leur destinataire"></progress>
-        <p class="small" id="updatedNotice" role="status">Le suivi se met à jour automatiquement toutes les 15 secondes.</p>
-      </section><div class="notice">✅ Tirage effectué. Tu peux envoyer les invitations individuelles ci-dessous.</div>`
-      :`<p class="hint">Vérifie les prénoms avant de lancer le tirage : il sera ensuite définitif.</p><button id="draw" class="primary">🎲 Lancer le tirage</button>`}
+        <p class="small" id="updatedNotice" role="status">Actualisation automatique toutes les 15 secondes.</p>
+      </section><div class="notice">✅ Tirage effectué. Les invitations utilisent le message « Après le tirage ».</div>`
+      :`<div class="notice">✉️ Les liens privés fonctionnent déjà : les amis peuvent compléter leurs souhaits avant le tirage.</div><p class="hint">Vérifie les prénoms avant de lancer le tirage : il sera définitif.</p><button id="draw" class="primary" type="button">🎲 Lancer le tirage</button>`}
+      <section class="message-editor" aria-labelledby="messagesTitle">
+        <h3 id="messagesTitle">✉️ Personnaliser les messages WhatsApp</h3>
+        <p class="small">Les deux textes sont enregistrés pour cet événement. Au moment de partager, l'application utilise automatiquement le message <b>${esc(statusLabel)}</b>.</p>
+        <p class="small">Variables disponibles : <code>{prenom}</code> <code>{emoji}</code> <code>{evenement}</code> <code>{budget}</code> <code>{date}</code> <code>{lien}</code>. Garde impérativement <code>{lien}</code> dans chaque texte.</p>
+        <label for="messageBefore">Avant le tirage</label><textarea id="messageBefore" rows="7" maxlength="1800">${esc(data.messages.before)}</textarea>
+        <label for="messageAfter">Après le tirage</label><textarea id="messageAfter" rows="7" maxlength="1800">${esc(data.messages.after)}</textarea>
+        <button id="saveMessages" type="button" class="secondary message-save">Enregistrer les deux messages</button>
+        <p id="messageSaveStatus" class="small" role="status">Les messages actuels sont enregistrés.</p>
+        <div class="preview-panel"><div class="section-heading"><h3>Prévisualisation</h3><span class="small">Message tel qu'il sera envoyé</span></div>
+          <div class="preview-controls"><div><label for="previewPhase">Moment</label><select id="previewPhase"><option value="before" ${data.drawn?'':'selected'}>Avant le tirage</option><option value="after" ${data.drawn?'selected':''}>Après le tirage</option></select></div>
+          <div><label for="previewPerson">Destinataire</label><select id="previewPerson">${data.participants.map((p,i)=>`<option value="${i}">${esc(p.emoji)} ${esc(p.name)}</option>`).join('')}</select></div></div>
+          <pre id="invitationPreview" class="invite-preview"></pre>
+        </div>
+      </section>
       <div class="section-heading"><h3>Participants et invitations</h3><span class="small">${data.participants.length} liens privés</span></div>
       <div id="links" class="linklist"></div>
       <p id="message" class="error" role="alert" hidden></p>`);
 
+    const beforeInput=document.getElementById('messageBefore'),afterInput=document.getElementById('messageAfter');
+    const shareAnchors=[];
     const list=document.getElementById('links');
     data.participants.forEach((p,i)=>{
       const row=document.createElement('div');row.className='invite-row';
       const info=document.createElement('div');info.className='invite-info';
-      const name=document.createElement('strong');name.textContent='🎁 '+p.name;
+      const name=document.createElement('strong');name.textContent=p.emoji+'  '+p.name;
       const badge=document.createElement('span');badge.className='status-chip status-pending';badge.id='revealStatus-'+i;
-      if(!data.drawn)badge.textContent='Tirage à venir';
+      if(!data.drawn)badge.textContent='⏳ Tirage à venir';
       info.append(name,badge);
       const actions=document.createElement('div');actions.className='invite-actions';
       const copyButton=document.createElement('button');copyButton.type='button';copyButton.className='outline';copyButton.textContent='Copier le lien';
-      copyButton.onclick=()=>copy(location.origin+p.path,copyButton);
-      actions.append(copyButton);
-      if(data.drawn){
-        const wa=document.createElement('a');wa.className='whatsapp-button';wa.target='_blank';wa.rel='noopener noreferrer';
-        wa.href='https://wa.me/?text='+encodeURIComponent(invitationText(data,p));
-        wa.textContent='WhatsApp';wa.setAttribute('aria-label','Partager le lien privé de '+p.name+' via WhatsApp');
-        actions.append(wa);
-      }
+      copyButton.onclick=()=>copy(location.origin+p.path,copyButton);actions.append(copyButton);
+      const wa=document.createElement('a');wa.className='whatsapp-button';wa.target='_blank';wa.rel='noopener noreferrer';
+      wa.textContent='WhatsApp';wa.setAttribute('aria-label','Partager le lien privé de '+p.name+' sur WhatsApp');
+      shareAnchors.push({wa,person:p});actions.append(wa);
       row.append(info,actions);list.append(row);
     });
+    const previewPhase=document.getElementById('previewPhase'),previewPerson=document.getElementById('previewPerson');
+    function validateClient(t){
+      return t.includes('{lien}') && t.trim().length>=10 && t.length<=1800 &&
+        (t.match(/\{[^{}]*\}/g)||[]).every(tag=>['{prenom}','{emoji}','{evenement}','{budget}','{date}','{lien}'].includes(tag));
+    }
+    function updateMessageUi(){
+      const draftBefore=beforeInput.value,draftAfter=afterInput.value;
+      const selected=previewPerson.value;
+      const p=data.participants[Number(selected)]||data.participants[0];
+      document.getElementById('invitationPreview').textContent=invitationText(data,p,previewPhase.value==='before'?draftBefore:draftAfter);
+      const active=data.drawn?draftAfter:draftBefore;
+      for(const {wa,person} of shareAnchors){
+        if(validateClient(active)){
+          wa.href='https://wa.me/?text='+encodeURIComponent(invitationText(data,person,active));
+          wa.removeAttribute('aria-disabled');wa.removeAttribute('tabindex');
+        }else{
+          wa.removeAttribute('href');wa.setAttribute('aria-disabled','true');wa.setAttribute('tabindex','-1');
+        }
+      }
+      const saved=(draftBefore===data.messages.before&&draftAfter===data.messages.after);
+      const notice=document.getElementById('messageSaveStatus');
+      if(!saved){notice.textContent='● Modifications non enregistrées. Tu peux prévisualiser et partager le texte, mais enregistre-le pour le retrouver plus tard.';notice.className='small save-unsaved';}
+      else{notice.textContent='✓ Les deux messages sont enregistrés.';notice.className='small save-ok';}
+    }
+    beforeInput.addEventListener('input',updateMessageUi);afterInput.addEventListener('input',updateMessageUi);
+    previewPhase.onchange=updateMessageUi;previewPerson.onchange=updateMessageUi;
+    updateMessageUi();
+    document.getElementById('saveMessages').onclick=async()=>{
+      const btn=document.getElementById('saveMessages');btn.disabled=true;
+      const notice=document.getElementById('messageSaveStatus');
+      notice.textContent='Enregistrement…';
+      try{
+        const result=await request(url+'/messages',{method:'PATCH',body:JSON.stringify({before:beforeInput.value,after:afterInput.value})});
+        data.messages=result.messages;
+        beforeInput.value=result.messages.before;afterInput.value=result.messages.after;
+        updateMessageUi();message('');
+      }catch(err){notice.textContent='⚠️ '+err.message;notice.className='small save-error';}
+      finally{btn.disabled=false;}
+    };
     function updateStatuses(latest){
       if(!latest.drawn)return;
       const revealed=latest.participants.filter(p=>Boolean(p.revealedAt)).length;
@@ -124,8 +274,7 @@ async function organize(key){
     if(data.drawn){
       updateStatuses(data);
       async function refresh(manual=false){
-        const button=document.getElementById('refresh');
-        if(!button)return;
+        const button=document.getElementById('refresh');if(!button)return;
         if(manual)button.disabled=true;
         try{
           const latest=await request(url);updateStatuses(latest);
@@ -142,14 +291,18 @@ async function organize(key){
     if(draw)draw.onclick=async()=>{
       if(!confirm('Lancer le tirage définitif pour '+data.participants.length+' personnes ?'))return;
       draw.disabled=true;
-      try{await request(url+'/draw',{method:'POST'});await organize(key);}
-      catch(err){fail(err);draw.disabled=false;}
+      try{
+        if(beforeInput.value!==data.messages.before||afterInput.value!==data.messages.after){
+          await request(url+'/messages',{method:'PATCH',body:JSON.stringify({before:beforeInput.value,after:afterInput.value})});
+        }
+        await request(url+'/draw',{method:'POST'});await organize(key);
+      }catch(err){fail(err);draw.disabled=false;}
     };
   }catch(err){card('<h2>Lien organisateur indisponible</h2><p class="error">'+esc(err.message)+'</p><a href="/">Créer un événement</a>');}
 }
 
 // La validation de la révélation est enregistrée sur le serveur, jamais uniquement dans le navigateur.
-function setupScratch(key,onRevealed){
+function setupScratch(key,onRevealed,emoji,style){
   const canvas=document.getElementById('scratchCanvas');
   const surface=document.getElementById('scratchTicket');
   const status=document.getElementById('scratchStatus');
@@ -166,7 +319,7 @@ function setupScratch(key,onRevealed){
       await request('/api/gift/'+encodeURIComponent(key)+'/reveal',{method:'POST'});
       surface.classList.add('is-revealed');
       status.textContent='🎉 Ton ticket est découvert et le restera à ta prochaine visite !';
-      skip.hidden=true;celebrate();onRevealed();
+      skip.hidden=true;celebrate(emoji,style);onRevealed();
       window.setTimeout(()=>{if(canvas.isConnected)canvas.hidden=true;},850);
     }catch(err){
       finished=false;skip.disabled=false;skip.hidden=false;
@@ -207,13 +360,13 @@ function setupScratch(key,onRevealed){
 }
 async function gift(key){
   try{
-    const d=await request('/api/gift/'+encodeURIComponent(key));applyTheme(d.theme);
+    const d=await request('/api/gift/'+encodeURIComponent(key));applyTheme(d.theme);personalizedDecor(d.emoji,d.emojiStyle);
     const alreadyRevealed=Boolean(d.drawn&&d.revealedAt);
-    card(`<div class="celebrate">${d.drawn?'🎁':'⏳'}</div><h2 class="center">Bonjour ${esc(d.giver)} !</h2>
+    card(`<div class="identity-banner"><div class="identity-orb" aria-hidden="true">${esc(d.emoji)}</div><div class="identity-label">Ton symbole de Noël <strong>${esc(d.emoji)} ${esc(d.giver)}</strong></div></div><h2 class="center">Bonjour ${esc(d.giver)} !</h2>
       <p class="center muted">${esc(d.title)}</p>
       ${d.drawn?`<p class="center">${alreadyRevealed?'Tu as déjà découvert ton destinataire !':'Ton destinataire se cache sous ce ticket. Gratte pour le découvrir !'}</p>
         <div class="scratch-ticket ${alreadyRevealed?'is-revealed':''}" id="scratchTicket">
-          <div class="scratch-prize"><span>TON DESTINATAIRE SECRET</span><strong>${esc(d.recipient)}</strong><span class="scratch-sparkles">🎄 ✨ 🎁</span></div>
+          <div class="scratch-prize"><span>TON DESTINATAIRE SECRET</span><strong>${esc(d.recipient)}</strong><span class="scratch-sparkles" aria-hidden="true">${esc(d.emoji)} ✨ ${esc(d.emoji)}</span></div>
           ${alreadyRevealed?'':'<canvas id="scratchCanvas" class="scratch-cover" aria-label="Ticket à gratter : glisse ton doigt ou ta souris pour révéler le prénom"></canvas>'}
         </div>
         <p class="small center" id="scratchStatus" role="status">${alreadyRevealed?'✓ Ticket déjà découvert : aucun nouveau grattage nécessaire.':'Glisse ton doigt ou ta souris sur le ticket argenté.'}</p>
@@ -226,7 +379,7 @@ async function gift(key){
         <label for="wishlist">Mes envies (1500 caractères maximum)</label><textarea id="wishlist" maxlength="1500" rows="4" placeholder="Livres, jeux, gourmandises, surprises…">${esc(d.wishlist)}</textarea>
         <button id="saveWishlist" class="secondary" type="button">Enregistrer mes souhaits</button><p id="wishMessage" class="small" role="status"></p>
       </div><p class="small center">🤫 Garde ton destinataire secret jusqu’à l’échange !</p>`);
-    if(d.drawn&&!alreadyRevealed)setupScratch(key,()=>{document.getElementById('recipientWishes').hidden=false;});
+    if(d.drawn&&!alreadyRevealed)setupScratch(key,()=>{document.getElementById('recipientWishes').hidden=false;},d.emoji,d.emojiStyle);
     document.getElementById('saveWishlist').onclick=async()=>{
       const btn=document.getElementById('saveWishlist');btn.disabled=true;
       const status=document.getElementById('wishMessage');status.textContent='Enregistrement…';

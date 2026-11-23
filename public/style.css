@@ -56,3 +56,60 @@ main{position:relative;z-index:1}
 .whatsapp-button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:11px;background:#168b52;color:white;font-weight:700;min-height:41px}
 .whatsapp-button:focus-visible{outline:3px solid #2a936a;outline-offset:2px}
 @media(max-width:530px){.invite-row{align-items:stretch;flex-direction:column}.invite-actions{display:grid;grid-template-columns:1fr 1fr}.invite-actions button,.whatsapp-button{width:100%}}
+
+/* V4 : exclusions par deux listes déroulantes */
+.exclusion-settings{margin-top:21px;padding:17px;border:1px solid #e0e7dd;background:#fafcf8;border-radius:16px}
+.exclusion-settings h3{margin-top:0}
+.exclusion-picker{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.exclusion-picker label{margin:9px 0 6px}
+.add-exclusion{margin:12px 0 5px}
+.exclusion-list{display:grid;gap:7px;margin-top:10px}
+.exclusion-item{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e2e9e0;background:#fff;border-radius:10px;padding:7px 9px 7px 13px;font-size:13px}
+.exclusion-item button{font-size:12px;padding:7px 10px}
+
+/* V4 : personnalisation des messages avant et après le tirage */
+.message-editor{border:1px solid #dbe6da;border-radius:16px;padding:18px;margin:24px 0;background:#fbfdf9}
+.message-editor h3{margin:0 0 8px}
+.message-editor code{display:inline-block;border:1px solid #dbe7d9;background:#eef6eb;padding:2px 5px;margin:2px 1px;border-radius:5px;white-space:nowrap;color:#21513b;font-size:12px}
+.message-editor textarea{font-size:13px;min-height:148px;background:white}
+.message-save{margin-top:13px;width:100%}
+.save-unsaved{color:#94662d}.save-ok{color:#266b46}.save-error{color:#a53b37}
+.preview-panel{margin:16px 0 0;border-radius:13px;background:#f0f7f0;border:1px solid #d8e8d9;padding:13px}
+.preview-panel .section-heading{margin:0 0 7px}.preview-panel .section-heading h3{font-size:15px}
+.preview-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.preview-controls label{margin:7px 0 5px}
+.preview-controls select{font-size:13px;padding:9px}
+.invite-preview{font:13px/1.55 system-ui,-apple-system,sans-serif;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;color:#244c36;background:#fff;border:1px solid #dce8da;padding:13px;border-radius:10px;max-height:280px;overflow:auto}
+.whatsapp-button[aria-disabled="true"]{opacity:.5;pointer-events:none;cursor:not-allowed}
+
+/* V4 : chaque participant possède une signature visuelle et des animations propres. */
+body{--person-accent:#2c7954;--person-pale:#e4f2e4;--person-dark:#19533a}
+body[data-emoji-style="hiver"]{--person-accent:#387f9b;--person-pale:#e3f5fc;--person-dark:#23627e}
+body[data-emoji-style="foret"]{--person-accent:#438357;--person-pale:#e3f2df;--person-dark:#21563c}
+body[data-emoji-style="dore"]{--person-accent:#aa7737;--person-pale:#fff2d2;--person-dark:#895522}
+body[data-emoji-style="nuit"]{--person-accent:#5866ae;--person-pale:#edeafd;--person-dark:#38457d}
+body[data-emoji-style="gourmand"]{--person-accent:#af5d65;--person-pale:#ffe8df;--person-dark:#994850}
+body[data-emoji-style="fete"]{--person-accent:#9b5e8e;--person-pale:#f8e4f2;--person-dark:#773f6c}
+.identity-banner{display:flex;align-items:center;justify-content:center;gap:15px;margin:8px 0 22px}
+.identity-orb{height:86px;width:86px;border-radius:50%;background:radial-gradient(circle at 35% 25%,#fff,var(--person-pale));border:2px solid var(--person-accent);display:grid;place-items:center;font-size:44px;box-shadow:0 10px 22px #163b2c19;animation:orb-float 3.8s ease-in-out infinite}
+.identity-label{text-align:left;color:var(--person-dark);font-size:12px;font-weight:600}
+.identity-label strong{display:block;font-family:Georgia,serif;font-size:22px;font-weight:700;margin-top:3px}
+body[data-emoji-style] .scratch-ticket{border-color:var(--person-accent)}
+body[data-emoji-style] .scratch-prize{background:radial-gradient(circle,#fffdf6,var(--person-pale));color:var(--person-dark)}
+body[data-emoji-style] .scratch-prize strong{color:var(--person-dark)}
+body[data-emoji-style] .wishlist-panel{background:linear-gradient(150deg,#fff,var(--person-pale));border-color:var(--person-accent)}
+.emoji-sky{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;opacity:.34}
+.emoji-sky span{position:absolute;top:-42px;animation:emoji-float 13s linear infinite;filter:saturate(.8)}
+.emoji-sky[data-style="nuit"] span,.emoji-sky[data-style="dore"] span{animation-name:emoji-twinkle}
+.emoji-sky[data-style="foret"] span{animation-name:emoji-sway}
+.emoji-sky[data-style="gourmand"] span{animation-name:emoji-bounce}
+.emoji-sky[data-style="fete"] span{animation-name:emoji-party}
+.confetti-layer i.motif-confetti{background:transparent!important;width:auto;height:auto;font-style:normal;font-size:22px}
+@keyframes orb-float{50%{transform:translateY(-6px) rotate(-5deg)}}
+@keyframes emoji-float{to{transform:translate(20px,112vh) rotate(55deg);opacity:.4}}
+@keyframes emoji-twinkle{25%{opacity:.2}50%{transform:translate(15px,55vh) rotate(160deg);opacity:1}to{transform:translate(-10px,112vh) rotate(340deg);opacity:0}}
+@keyframes emoji-sway{30%{transform:translate(-14px,35vh) rotate(-18deg)}60%{transform:translate(18px,72vh) rotate(12deg)}to{transform:translate(-8px,112vh);opacity:0}}
+@keyframes emoji-bounce{50%{transform:translate(28px,55vh) rotate(27deg) scale(1.3)}to{transform:translate(-22px,112vh) rotate(-18deg);opacity:0}}
+@keyframes emoji-party{25%{transform:translate(30px,26vh) rotate(95deg)}55%{transform:translate(-24px,65vh) rotate(-85deg)}to{transform:translate(12px,112vh) rotate(250deg);opacity:0}}
+@media(max-width:530px){.exclusion-picker,.preview-controls{grid-template-columns:1fr}.message-editor{padding:14px}}
+@media(prefers-reduced-motion:reduce){.emoji-sky{display:none}.identity-orb{animation:none}}
