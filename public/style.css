@@ -11,3 +11,22 @@
 .scratch-access{display:block;margin:0 auto 16px;background:transparent;color:#446b5b;text-decoration:underline;font-size:12px;padding:8px 12px}
 .scratch-access[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){.scratch-cover{transition:none}}
+/* Secret Santa V2: thèmes, exclusions, souhaits et célébration. */
+select,textarea{font:inherit;width:100%;border:1px solid #d9e1d9;border-radius:11px;padding:12px;color:#173b2c;background:#fff}
+textarea{resize:vertical;line-height:1.5}
+h3{font-size:17px;margin:22px 0 9px}
+.exclusion-pair{display:inline-flex;align-items:center;gap:7px;margin:5px 9px 5px 0;padding:9px 11px;border:1px solid #e2e8df;border-radius:10px;background:#f9fbf8;font-weight:500;font-size:12px;cursor:pointer}
+.exclusion-pair input{width:16px;height:16px;accent-color:#1c6549;margin:0}
+.wishlist-panel{margin-top:20px;padding:17px;background:#f7faf5;border:1px solid #dce9d9;border-radius:14px}
+.wishlist-panel h3{margin-top:0}.wishlist-panel button{margin-top:10px}.wish-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+body[data-theme="rouge"]{background:radial-gradient(circle at top left,#f8e8df,transparent 35%),#fffaf0}
+body[data-theme="rouge"] h1{color:#94333a}body[data-theme="rouge"] .primary{background:#aa3b41}body[data-theme="rouge"] .scratch-ticket{border-color:#c79e45}
+body[data-theme="nuit"]{background:radial-gradient(circle at top,#263b64,#0d2032 80%);color:#f8eaca}
+body[data-theme="nuit"] .card{background:#f7f8ff;color:#173c3d}body[data-theme="nuit"] h1{color:#ffe5a6}body[data-theme="nuit"] .subtitle,body[data-theme="nuit"] footer{color:#d6dbe9}
+.confetti-layer,.snowfall{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:100}
+.confetti-layer i{position:absolute;top:-20px;width:10px;height:15px;animation:confetti-drop 3s linear forwards;transform:rotate(20deg)}
+.snowfall{z-index:0;opacity:.4}.snowfall span{position:absolute;top:-25px;color:#a9cddd;animation:snow-fall 11s linear infinite}
+main{position:relative;z-index:1}
+@keyframes confetti-drop{to{transform:translateY(110vh) rotate(760deg);opacity:0}}
+@keyframes snow-fall{to{transform:translate(35px,110vh)}}
+@media(prefers-reduced-motion:reduce){.confetti-layer,.snowfall{display:none}}
