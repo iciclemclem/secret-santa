@@ -1,51 +1,74 @@
-# Secret Santa V3 — WhatsApp et suivi des découvertes
+# 🎄 Secret Santa — V4
 
-Application web en **Node.js 20+**, sans dépendance npm externe, adaptée à Railway. Les mêmes liens individuels et organisateur continuent de fonctionner après la mise à jour V2 → V3, à condition de **conserver le volume de stockage existant**.
+Application web mobile pour organiser un Secret Santa privé, avec tirage sans auto-attribution, exclusions, souhaits et ticket à gratter.
 
-## Nouveautés V3
+## Nouveautés V4
 
-- **Invitations WhatsApp personnelles** : le bouton de chaque participant ouvre un brouillon WhatsApp contenant son prénom, l'événement, le budget, la date et **seulement son lien secret**. Choisir le destinataire et cliquer sur Envoyer dans WhatsApp reste une action manuelle. Aucune API WhatsApp ni numéro de téléphone n'est nécessaire.
-- **Tableau de bord organisateur** : progression globale, badge « Pas encore découvert » / « Découvert » pour chacun, date de première découverte, bouton « Actualiser » et actualisation automatique toutes les 15 secondes lorsque l'onglet est actif.
-- **Ticket à gratter persistant** : quand le participant a gratté au moins environ 42 % du ticket (ou utilisé « Révéler sans gratter »), le navigateur appelle `POST /api/gift/:token/reveal`. Le serveur enregistre une **date de première découverte** (`revealedAt`) dans `events.json`. À la prochaine ouverture ou actualisation, le ticket reste découvert, même depuis un autre appareil.
-- **V2 préservée** : exclusions, thèmes, neige et confettis, listes de souhaits et tirages restent en place.
+- **WhatsApp avant ET après le tirage** : les liens privés existent dès la création. Avant le tirage, le participant voit « tirage à venir » et peut compléter ses souhaits. Après, il peut découvrir son destinataire.
+- **Deux modèles de message WhatsApp éditables par l'organisateur** : « Avant le tirage » et « Après le tirage ». Ils sont enregistrés dans `events.json` et utilisés automatiquement selon la phase de l'événement.
+- **Exclusions de couples** : deux listes déroulantes de prénoms et un bouton « Ajouter l'exclusion ». L'exclusion fonctionne dans les deux sens. Une liste permet de retirer les exclusions ajoutées.
+- **Emoji de Noël unique par participant** : attribué automatiquement lors de la création de l'événement ; même emoji sur sa carte organisateur et dans sa page personnelle. Le fond, les couleurs du ticket, les flocons/objets animés et la pluie de confettis s'inspirent de son emoji et de sa famille visuelle.
+- **Conservation de la V3** : suivi des révélations, ticket toujours découvert après actualisation, listes de souhaits, 3 thèmes, liens confidentiels et événements existants.
 
-## Installation locale
+## Modèles personnalisables
 
-```bash
-node server.js
+L'organisateur peut personnaliser les deux textes depuis son tableau de bord. Variables de substitution :
+
+- `{prenom}` — prénom de l'invité
+- `{emoji}` — emoji unique de l'invité
+- `{evenement}` — nom de l'événement
+- `{budget}` — montant formaté
+- `{date}` — date de remise (ou « À définir »)
+- `{lien}` — lien personnel de l'invité **obligatoire**
+
+La prévisualisation permet de choisir l'invité et le moment. Le texte est enregistré en appuyant sur **Enregistrer les deux messages** ; les liens WhatsApp utilisent le texte actuellement édité, même non encore enregistré. Les boutons ouvrent WhatsApp avec le message préparé : **l'envoi final doit toujours être confirmé manuellement**. L'application n'envoie aucun message automatiquement et ne requiert aucun compte WhatsApp Business.
+
+## Architecture
+
+```text
+secret-santa-v4/
+├── server.js              Serveur HTTP Node.js (sans dépendance externe)
+├── package.json           Commandes npm
+├── public/
+│   ├── index.html         Squelette HTML
+│   ├── app.js             Création, tableau de bord, WhatsApp, ticket à gratter
+│   └── style.css          Thèmes et animations
+├── test/
+│   ├── integration.test.js    Régression V2/V3
+│   └── v4.test.js             Compatibilité V3 et fonctionnalités V4
+├── MISE_A_JOUR_RAILWAY.md
+└── README.md
 ```
 
-Puis ouvrir `http://127.0.0.1:3000`.
+La base de données est un fichier JSON conservé dans `DATA_DIR/events.json` ; pour Railway, `DATA_DIR=/data` avec un volume **persistant** monté sur `/data`. L'enregistrement est atomique via fichier temporaire + renommage.
 
-Tests serveur :
+## Démarrage local
+
+Node.js 20+ requis :
+
+```bash
+npm start
+```
+
+Ouvrir http://127.0.0.1:3000 (par défaut). Pour lancer les tests automatisés :
 
 ```bash
 npm test
 ```
 
-Les tests créent un stockage temporaire et ne touchent jamais au fichier de données réel.
+En hébergement, configurer `HOST=0.0.0.0` ; `PORT` est fourni automatiquement par Railway. Aucun `npm install` externe n'est nécessaire.
 
-## Mise à jour Railway
+## Compatibilité et confidentialité
 
-Voir [MISE_A_JOUR_RAILWAY.md](MISE_A_JOUR_RAILWAY.md).
+- Les anciens liens `/gift/<token>` et `/organize/<token>` demeurent inchangés.
+- La V4 lit les événements V2/V3 tels quels ; les messages manquants utilisent les modèles par défaut. Les anciens participants reçoivent un emoji de manière **déterministe selon leur position**, sans changer les tirages ni exiger de migration.
+- Les événements V4 attribuent et enregistrent des emojis uniques. Le nombre maximal reste 50 participants.
+- Les destinataires sont affectés seulement lors du tirage. Les liens privés sont utilisables dès la création pour saisir les listes de souhaits, sans montrer de résultat avant le tirage.
+- L'organisateur visualise uniquement la liste des participants et leur statut de révélation, pas les associations de tirage.
+- Après révélation, `revealedAt` reste enregistré côté serveur, même après actualisation ou changement de téléphone.
+- Les liens personnels et organisateur sont des **secrets d'accès**. Ne jamais envoyer le lien organisateur dans un groupe, ni déposer le fichier `events.json` dans un dépôt GitHub.
+- La V4 ne collecte pas de numéro de téléphone : elle ouvre un partage WhatsApp depuis le navigateur de l'organisateur.
 
-La V3 **ne recrée pas** la base `events.json`, **ne change pas** les tokens/URL des participants et **ne modifie pas** les destinataires déjà attribués. Le serveur interprète `revealedAt` manquant comme « pas encore confirmé comme découvert ».
+## Déploiement
 
-**Important pour les anciens événements :** les tickets grattés avant la V3 n'étaient pas enregistrés. L'organisateur ne peut donc pas retrouver l'historique des révélations passées. La fonction de suivi commence avec la V3 ; un participant qui avait déjà gratté en V2 devra confirmer une fois sa découverte dans la V3.
-
-## Gestion des données et confidentialité
-
-- Les tokens contenus dans les liens sont des **secrets d'accès**. Ne partagez jamais le lien organisateur ni les liens individuels dans un groupe ou sur un dépôt public.
-- `events.json` contient les associations et les listes de souhaits ; il doit rester exclusivement dans le volume privé Railway (`DATA_DIR=/data`).
-- Le bouton WhatsApp **prépare** le message, il ne prouve pas que le message a été envoyé. Le badge de suivi confirme l'enregistrement de la révélation côté serveur, pas l'envoi ou la lecture de l'invitation.
-- L'organisateur peut accéder à tous les liens individuels, conformément au fonctionnement des versions précédentes.
-- Un unique serveur Node doit écrire sur un même fichier JSON. Ne lancez pas plusieurs répliques/instances sur le même volume.
-- L'interface de grattage conserve le nom sous la couche argentée côté navigateur, comme en V2. Toute personne ayant le lien personnel et inspectant la page peut donc lire son propre résultat sans gratter. Le badge indique que le participant a déclenché la révélation via l'interface ou l'API ; il ne certifie pas un geste physique.
-
-## API ajoutée en V3
-
-- `POST /api/gift/:token/reveal` : enregistre la première révélation, sans effacer une date existante. Répond `{ "revealedAt": "..." }`.
-- `GET /api/gift/:token` : ajoute `revealedAt` (date ISO ou `null`).
-- `GET /api/organize/:token` : chaque participant contient désormais `revealedAt`. Les attributions elles-mêmes restent masquées dans l'API organisateur.
-
-Aucune migration manuelle n'est nécessaire.
+Consulter [MISE_A_JOUR_RAILWAY.md](MISE_A_JOUR_RAILWAY.md) pour effectuer la mise à jour sur le dépôt GitHub/Railway existant sans perdre les événements.

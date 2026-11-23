@@ -62,6 +62,48 @@ function assignment(n, exclusions = []) {
   return result;
 }
 const THEMES = ['foret','rouge','nuit'];
+// Identités de Noël uniques au sein d'un événement (50 participants maximum).
+// Chaque identité détermine également sa palette et les particules décoratives.
+const FESTIVE_ICONS = [
+  ['🎅','fete'],['🤶','fete'],['🧑‍🎄','fete'],['🎄','foret'],['🌲','foret'],
+  ['🎁','fete'],['🎀','fete'],['🔔','dore'],['🛎️','dore'],['🦌','foret'],
+  ['🛷','hiver'],['❄️','hiver'],['☃️','hiver'],['⛄','hiver'],['🌨️','hiver'],
+  ['🧊','hiver'],['🧣','hiver'],['🧤','hiver'],['🧦','fete'],['🕯️','dore'],
+  ['⭐','dore'],['🌟','dore'],['✨','dore'],['💫','nuit'],['🌠','nuit'],
+  ['🌙','nuit'],['🌌','nuit'],['🎇','nuit'],['🎆','nuit'],['🔥','dore'],
+  ['🪵','foret'],['🏠','foret'],['🏡','foret'],['🐧','hiver'],['🐻‍❄️','hiver'],
+  ['🦉','foret'],['🦊','foret'],['🐿️','foret'],['🐇','hiver'],['🕊️','hiver'],
+  ['🍪','gourmand'],['🍬','gourmand'],['🍭','gourmand'],['🍫','gourmand'],['🍩','gourmand'],
+  ['🧁','gourmand'],['🎂','gourmand'],['🥧','gourmand'],['☕','gourmand'],['🫖','gourmand'],
+  ['🥛','gourmand'],['🍰','gourmand'],['🎉','fete'],['🎊','fete'],['🎶','fete'],
+  ['🎵','fete'],['🎼','fete'],['🧸','fete'],['🧩','fete'],['🪁','fete']
+];
+const DEFAULT_MESSAGES = Object.freeze({
+  before: 'Coucou {prenom} {emoji} ! 🎄\n\nTu participes à « {evenement} » !\nBudget : {budget}\nDate : {date}\n\nVoici ton lien personnel : {lien}\n\nTu peux déjà compléter ta liste de souhaits. Le tirage arrive bientôt ! 🤫',
+  after: 'Coucou {prenom} {emoji} ! 🎁\n\nLe tirage de « {evenement} » a eu lieu !\nBudget : {budget}\nDate : {date}\n\nVoici ton lien personnel : {lien}\n\nGratte ton ticket pour découvrir à qui offrir un cadeau ! Garde ton lien secret. 🤫'
+});
+const MESSAGE_TAGS = new Set(['prenom','emoji','evenement','budget','date','lien']);
+function eventMessages(e){
+  return {
+    before: typeof e.messages?.before === 'string' ? e.messages.before : DEFAULT_MESSAGES.before,
+    after: typeof e.messages?.after === 'string' ? e.messages.after : DEFAULT_MESSAGES.after
+  };
+}
+function validTemplate(t){
+  if(typeof t !== 'string' || t.trim().length < 10 || t.length > 1800 || !t.includes('{lien}'))return false;
+  const tags = t.match(/\{[^{}]*\}/g) || [];
+  return tags.every(tag => MESSAGE_TAGS.has(tag.slice(1,-1)));
+}
+function participantIdentity(p,index){
+  const matched = FESTIVE_ICONS.find(([emoji])=>emoji===p.emoji);
+  const [emoji,style] = matched || FESTIVE_ICONS[index % FESTIVE_ICONS.length];
+  return { emoji, emojiStyle:style };
+}
+function pickIdentities(n){
+  const pool = [...FESTIVE_ICONS];
+  for(let i=pool.length-1;i>0;i--){const j=randInt(i+1);[pool[i],pool[j]]=[pool[j],pool[i]];}
+  return pool.slice(0,n);
+}
 function eventTheme(e){return THEMES.includes(e.theme)?e.theme:'foret';}
 function wishlistValue(p){return typeof p.wishlist==='string'?p.wishlist:'';}
 function revelationDate(p){return typeof p.revealedAt === 'string' && !Number.isNaN(Date.parse(p.revealedAt)) ? p.revealedAt : null;}
@@ -74,7 +116,9 @@ function validDate(value) {
 function organizerView(e) {
   return {
     title: e.title, budget: e.budget, date: e.date, drawn: e.drawn, theme: eventTheme(e), exclusions: e.exclusions || [],
-    participants: e.participants.map(p => ({ name: p.name, path: '/gift/' + p.token, revealedAt: revelationDate(p) }))
+    messages: eventMessages(e),
+    participants: e.participants.map((p,i) => ({ name: p.name, path: '/gift/' + p.token,
+      ...participantIdentity(p,i), revealedAt: revelationDate(p) }))
   };
 }
 const contentTypes = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8' };
@@ -108,16 +152,27 @@ const server = http.createServer(async (req, res) => {
       if(!Array.isArray(exclusions)||exclusions.length>2500 || exclusions.some(p => !Array.isArray(p)||p.length!==2||p.some(v=>!Number.isInteger(v)||v<0||v>=names.length)))return error(res,400,'Exclusions invalides.');
       const uniqueExclusions=[...new Map(exclusions.map(p=>[p.join(':'),p])).values()];
       if(!assignment(names.length, uniqueExclusions))return error(res,400,'Ces exclusions rendent le tirage impossible. Assouplis certaines règles.');
-      const key = id(), organizerToken = token();
-      events[key] = { title, budget, date, theme, exclusions: uniqueExclusions, organizerToken, drawn: false, participants: names.map(name => ({ name, token: token(), recipient: null, wishlist: '', revealedAt: null })) };
+      const key = id(), organizerToken = token(), identities = pickIdentities(names.length);
+      events[key] = { title, budget, date, theme, exclusions: uniqueExclusions, organizerToken, drawn: false,
+        messages: { ...DEFAULT_MESSAGES },
+        participants: names.map((name,i) => ({ name, token: token(), recipient: null, wishlist: '', revealedAt: null, emoji: identities[i][0] })) };
       save();
       return send(res, 201, { organizerPath: '/organize/' + organizerToken });
     }
-    const orgMatch = pathname.match(/^\/api\/organize\/([A-Za-z0-9_-]+)(\/draw)?$/);
+    const orgMatch = pathname.match(/^\/api\/organize\/([A-Za-z0-9_-]+)(\/draw|\/messages)?$/);
     if (orgMatch) {
       const e = Object.values(events).find(x => x.organizerToken === orgMatch[1]);
       if (!e) return error(res, 404, 'Événement introuvable.');
       if (req.method === 'GET' && !orgMatch[2]) return send(res, 200, organizerView(e));
+      if (req.method === 'PATCH' && orgMatch[2] === '/messages') {
+        const body = await readJSON(req);
+        if (!body || typeof body !== 'object' || !validTemplate(body.before) || !validTemplate(body.after)) {
+          return error(res,400,'Chaque message doit contenir {lien}, utiliser des variables reconnues et compter entre 10 et 1800 caractères.');
+        }
+        e.messages={before:body.before.trim(),after:body.after.trim()};
+        save();
+        return send(res,200,{messages:eventMessages(e)});
+      }
       if (req.method === 'POST' && orgMatch[2]) {
         if (e.drawn) return error(res, 409, 'Le tirage a déjà été effectué.');
         const shuffled = assignment(e.participants.length, e.exclusions || []);
@@ -131,8 +186,9 @@ const server = http.createServer(async (req, res) => {
     const giftMatch = pathname.match(/^\/api\/gift\/([A-Za-z0-9_-]+)(\/reveal)?$/);
     if (giftMatch && (req.method === 'GET' || req.method === 'PATCH' || req.method === 'POST')) {
       for (const e of Object.values(events)) {
-        const p = e.participants.find(p => p.token === giftMatch[1]);
-        if (!p) continue;
+        const participantIndex = e.participants.findIndex(p => p.token === giftMatch[1]);
+        if (participantIndex < 0) continue;
+        const p = e.participants[participantIndex];
         if (req.method === 'POST' && giftMatch[2] === '/reveal') {
           if (!e.drawn) return error(res, 409, 'Le tirage n’a pas encore eu lieu.');
           // Idempotent : une fois le ticket découvert, la date ne change jamais.
@@ -147,7 +203,8 @@ const server = http.createServer(async (req, res) => {
           return send(res,200,{wishlist:p.wishlist});
         }
         return send(res, 200, {
-          title:e.title,budget:e.budget,date:e.date,theme:eventTheme(e),giver:p.name,drawn:e.drawn,revealedAt:revelationDate(p),
+          title:e.title,budget:e.budget,date:e.date,theme:eventTheme(e),giver:p.name,
+          ...participantIdentity(p,participantIndex),drawn:e.drawn,revealedAt:revelationDate(p),
           wishlist:wishlistValue(p),
           recipient:e.drawn?e.participants[p.recipient].name:null,
           recipientWishlist:e.drawn?wishlistValue(e.participants[p.recipient]):''
