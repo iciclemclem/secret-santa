@@ -36,16 +36,34 @@ function readJSON(req) {
   });
 }
 function randInt(max) { return crypto.randomInt(max); }
-function assignment(n) {
-  // Sattolo produces one uniformly random cycle: everyone gives exactly once,
-  // everyone receives exactly once, and self-assignment is impossible.
-  const a = Array.from({ length: n }, (_, i) => i);
-  for (let i = n - 1; i > 0; i--) {
-    const j = randInt(i);
-    [a[i], a[j]] = [a[j], a[i]];
+function assignment(n, exclusions = []) {
+  // Randomized bipartite matching: every giver has a unique recipient.
+  // Unlike retries of a simple shuffle, this detects impossible rules reliably.
+  const forbidden = new Set(exclusions.map(([from, to]) => `${from}:${to}`));
+  const order = Array.from({length:n}, (_,i)=>i);
+  const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=randInt(i+1);[a[i],a[j]]=[a[j],a[i]];}return a; };
+  const candidates=order.map(i=>shuffle(order.filter(j=>j!==i&&!forbidden.has(`${i}:${j}`))));
+  if(candidates.some(a=>a.length===0)) return null;
+  const recipients=Array(n).fill(-1);
+  function augment(giver, seen){
+    for(const recipient of candidates[giver]){
+      if(seen.has(recipient))continue;
+      seen.add(recipient);
+      if(recipients[recipient]===-1||augment(recipients[recipient],seen)){
+        recipients[recipient]=giver;return true;
+      }
+    }
+    return false;
   }
-  return a;
+  const shuffledGivers=shuffle([...order]);
+  if(!shuffledGivers.every(g=>augment(g,new Set())))return null;
+  const result=Array(n);
+  recipients.forEach((giver,recipient)=>{result[giver]=recipient;});
+  return result;
 }
+const THEMES = ['foret','rouge','nuit'];
+function eventTheme(e){return THEMES.includes(e.theme)?e.theme:'foret';}
+function wishlistValue(p){return typeof p.wishlist==='string'?p.wishlist:'';}
 function validDate(value) {
   if (value === '') return true;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -54,7 +72,7 @@ function validDate(value) {
 }
 function organizerView(e) {
   return {
-    title: e.title, budget: e.budget, date: e.date, drawn: e.drawn,
+    title: e.title, budget: e.budget, date: e.date, drawn: e.drawn, theme: eventTheme(e), exclusions: e.exclusions || [],
     participants: e.participants.map(p => ({ name: p.name, path: '/gift/' + p.token }))
   };
 }
@@ -83,8 +101,14 @@ const server = http.createServer(async (req, res) => {
       if (new Set(names.map(n => n.toLocaleLowerCase('fr'))).size !== names.length) return error(res, 400, 'Les prénoms doivent être distincts. Ajoute une initiale si nécessaire.');
       if (!Number.isFinite(budget) || budget < 0 || budget > 100000) return error(res, 400, 'Budget invalide.');
       if (!validDate(date)) return error(res, 400, 'Date invalide.');
+      const theme = body.theme === undefined ? 'foret' : body.theme;
+      if(!THEMES.includes(theme))return error(res,400,'Thème invalide.');
+      const exclusions = body.exclusions === undefined ? [] : body.exclusions;
+      if(!Array.isArray(exclusions)||exclusions.length>2500 || exclusions.some(p => !Array.isArray(p)||p.length!==2||p.some(v=>!Number.isInteger(v)||v<0||v>=names.length)))return error(res,400,'Exclusions invalides.');
+      const uniqueExclusions=[...new Map(exclusions.map(p=>[p.join(':'),p])).values()];
+      if(!assignment(names.length, uniqueExclusions))return error(res,400,'Ces exclusions rendent le tirage impossible. Assouplis certaines règles.');
       const key = id(), organizerToken = token();
-      events[key] = { title, budget, date, organizerToken, drawn: false, participants: names.map(name => ({ name, token: token(), recipient: null })) };
+      events[key] = { title, budget, date, theme, exclusions: uniqueExclusions, organizerToken, drawn: false, participants: names.map(name => ({ name, token: token(), recipient: null, wishlist: '' })) };
       save();
       return send(res, 201, { organizerPath: '/organize/' + organizerToken });
     }
@@ -95,7 +119,8 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'GET' && !orgMatch[2]) return send(res, 200, organizerView(e));
       if (req.method === 'POST' && orgMatch[2]) {
         if (e.drawn) return error(res, 409, 'Le tirage a déjà été effectué.');
-        const shuffled = assignment(e.participants.length);
+        const shuffled = assignment(e.participants.length, e.exclusions || []);
+        if(!shuffled)return error(res,409,'Les exclusions empêchent le tirage.');
         e.participants.forEach((p, i) => { p.recipient = shuffled[i]; });
         e.drawn = true;
         save();
@@ -103,12 +128,24 @@ const server = http.createServer(async (req, res) => {
       }
     }
     const giftMatch = pathname.match(/^\/api\/gift\/([A-Za-z0-9_-]+)$/);
-    if (req.method === 'GET' && giftMatch) {
+    if (giftMatch && (req.method === 'GET' || req.method === 'PATCH')) {
       for (const e of Object.values(events)) {
         const p = e.participants.find(p => p.token === giftMatch[1]);
-        if (p) return send(res, 200, { title: e.title, budget: e.budget, date: e.date, giver: p.name, drawn: e.drawn, recipient: e.drawn ? e.participants[p.recipient].name : null });
+        if (!p) continue;
+        if (req.method === 'PATCH') {
+          const body = await readJSON(req);
+          if(typeof body.wishlist !== 'string' || body.wishlist.length>1500)return error(res,400,'Liste de souhaits limitée à 1500 caractères.');
+          p.wishlist=body.wishlist.trim();save();
+          return send(res,200,{wishlist:p.wishlist});
+        }
+        return send(res, 200, {
+          title:e.title,budget:e.budget,date:e.date,theme:eventTheme(e),giver:p.name,drawn:e.drawn,
+          wishlist:wishlistValue(p),
+          recipient:e.drawn?e.participants[p.recipient].name:null,
+          recipientWishlist:e.drawn?wishlistValue(e.participants[p.recipient]):''
+        });
       }
-      return error(res, 404, 'Lien individuel introuvable.');
+      return error(res,404,'Lien individuel introuvable.');
     }
     if (req.method === 'GET' && (pathname === '/' || pathname === '/app.js' || pathname === '/style.css' || /^\/(organize|gift)\/[A-Za-z0-9_-]+$/.test(pathname))) {
       return serveStatic(res, pathname);
