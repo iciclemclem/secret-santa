@@ -1,8 +1,8 @@
 {
   "name": "secret-santa-prive",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "private": true,
-  "description": "Secret Santa V5.1 : ticket intégral, zone de grattage limitée aux ballons, message WhatsApp unique",
+  "description": "Secret Santa V5.2 : interface épurée, ticket recentré, fond enneigé et correctifs mobile",
   "scripts": {
     "start": "node server.js",
     "test": "node --test"

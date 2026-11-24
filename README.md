@@ -1,12 +1,13 @@
-# Secret Santa V5.1
+# Secret Santa V5.2
 
-Secret Santa V5 ajoute :
+Cette version 5.2 apporte :
 
-- un **message WhatsApp unique** personnalisable, partageable avant **et** après le tirage ;
-- un **ticket à gratter visuel** basé sur l'image fournie, avec révélation du prénom dans la zone des ballons ;
-- l'affichage de **l'emoji du destinataire** dans le ticket révélé ;
-- une présentation plus subtile de la **décoration personnalisée** de chaque participant ;
-- la **compatibilité avec les événements V4** déjà stockés dans `events.json`.
+- un **ticket à gratter recentré** : la zone révélée apparaît bien dans la zone des ballons ;
+- la **suppression de l'emoji unique par participant** dans l'interface ;
+- un **en-tête simplifié** avec une présentation plus sobre ;
+- un **fond hivernal amélioré** avec neige animée et forêt discrète en arrière-plan ;
+- des **corrections responsive mobile** sur le formulaire de création et la prévisualisation du message ;
+- une **esthétique plus épurée** tout en gardant quelques décorations de Noël.
 
 ## Démarrage local
 
@@ -14,28 +15,21 @@ Secret Santa V5 ajoute :
 node server.js
 ```
 
-L'application écoute sur `http://localhost:3000` par défaut.
-
 Variables utiles :
 
-- `HOST` (ex. `0.0.0.0`)
+- `HOST`
 - `PORT`
-- `DATA_DIR` (ex. `/data` sur Railway)
+- `DATA_DIR`
 
-## Mise à jour depuis la V4
+## Mise à jour depuis la V5.1
 
-Remplacer dans ton dépôt GitHub :
+Remplace dans ton dépôt GitHub :
 
 - `server.js`
 - `package.json`
+- `public/index.html`
 - `public/app.js`
 - `public/style.css`
 - `public/ticket-avant-decouverte.png`
 
 Ne supprime pas le volume Railway `/data`.
-
-## Compatibilité des données
-
-- Les anciens événements avec `messages.before` / `messages.after` sont relus automatiquement.
-- La V5 utilise ensuite un champ unique `message` pour les enregistrements modifiés.
-- Les tirages, souhaits et statuts de découverte restent conservés.
