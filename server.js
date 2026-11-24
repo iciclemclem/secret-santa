@@ -195,17 +195,11 @@ const server = http.createServer(async (req, res) => {
       return send(res, 201, { organizerPath: '/organize/' + organizerToken });
     }
 
-    const orgMatch = pathname.match(/^\/api\/organize\/([A-Za-z0-9_-]+)(\/draw|\/messages|\/gift-theme)?$/);
+    const orgMatch = pathname.match(/^\/api\/organize\/([A-Za-z0-9_-]+)(\/draw|\/messages)?$/);
     if (orgMatch) {
       const e = Object.values(events).find(x => x.organizerToken === orgMatch[1]);
       if (!e) return error(res, 404, 'Événement introuvable.');
       if (req.method === 'GET' && !orgMatch[2]) return send(res, 200, organizerView(e));
-      if (req.method === 'PATCH' && orgMatch[2] === '/gift-theme') {
-        const body = await readJSON(req);
-        if (typeof body?.giftTheme !== 'string' || body.giftTheme.length > 200) return error(res,400,'Thème des cadeaux : 200 caractères maximum.');
-        e.giftTheme = body.giftTheme.trim(); save();
-        return send(res,200,{giftTheme: e.giftTheme});
-      }
       if (req.method === 'PATCH' && orgMatch[2] === '/messages') {
         const body = await readJSON(req);
         if (!body || typeof body !== 'object' || !validTemplate(body.message)) {
@@ -226,12 +220,17 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    const giftMatch = pathname.match(/^\/api\/gift\/([A-Za-z0-9_-]+)(\/reveal)?$/);
+    const giftMatch = pathname.match(/^\/api\/gift\/([A-Za-z0-9_-]+)(\/reveal|\/recipient)?$/);
     if (giftMatch && (req.method === 'GET' || req.method === 'PATCH' || req.method === 'POST')) {
       for (const e of Object.values(events)) {
         const participantIndex = e.participants.findIndex(p => p.token === giftMatch[1]);
         if (participantIndex < 0) continue;
         const p = e.participants[participantIndex];
+        // Le premier geste charge uniquement le prénom, sans enregistrer la découverte.
+        if (req.method === 'GET' && giftMatch[2] === '/recipient') {
+          if (!e.drawn) return error(res, 409, 'Le tirage n’a pas encore eu lieu.');
+          return send(res, 200, { recipient: e.participants[p.recipient].name });
+        }
         if (req.method === 'POST' && giftMatch[2] === '/reveal') {
           if (!e.drawn) return error(res, 409, 'Le tirage n’a pas encore eu lieu.');
           if (!revelationDate(p)) { p.revealedAt = new Date().toISOString(); save(); }
