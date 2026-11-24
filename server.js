@@ -78,8 +78,8 @@ const FESTIVE_ICONS = [
   ['🥛','gourmand'],['🍰','gourmand'],['🎉','fete'],['🎊','fete'],['🎶','fete'],
   ['🎵','fete'],['🎼','fete'],['🧸','fete'],['🧩','fete'],['🪁','fete']
 ];
-const DEFAULT_MESSAGE = 'Coucou {prenom} {emoji} ! 🎄\n\nTu participes à « {evenement} » !\nBudget : {budget}\nDate : {date}\n\nVoici ton lien personnel : {lien}\n\nTu peux déjà compléter ta liste de souhaits. Après le tirage, reviens sur ce même lien pour découvrir ton destinataire et gratter ton ticket. 🤫';
-const MESSAGE_TAGS = new Set(['prenom', 'emoji', 'evenement', 'budget', 'date', 'lien']);
+const DEFAULT_MESSAGE = 'Coucou {prenom} {emoji} ! 🎄\n\nTu participes à « {evenement} » !\nBudget : {budget}\nDate : {date}\nThème des cadeaux : {theme}\n\nVoici ton lien personnel : {lien}\n\nTu peux déjà compléter ta liste de souhaits. Après le tirage, reviens sur ce même lien pour découvrir ton destinataire et gratter ton ticket. 🤫';
+const MESSAGE_TAGS = new Set(['prenom', 'emoji', 'evenement', 'budget', 'date', 'lien', 'theme']);
 
 function eventMessage(e) {
   if (typeof e.message === 'string') return e.message;
@@ -103,7 +103,8 @@ function pickIdentities(n) {
   for (let i = pool.length - 1; i > 0; i--) { const j = randInt(i + 1); [pool[i], pool[j]] = [pool[j], pool[i]]; }
   return pool.slice(0, n);
 }
-function eventTheme(e) { return THEMES.includes(e.theme) ? e.theme : 'foret'; }
+function eventTheme(e) { return 'nuit'; }
+function giftTheme(e) { return typeof e.giftTheme === 'string' ? e.giftTheme : ''; }
 function wishlistValue(p) { return typeof p.wishlist === 'string' ? p.wishlist : ''; }
 function revelationDate(p) { return typeof p.revealedAt === 'string' && !Number.isNaN(Date.parse(p.revealedAt)) ? p.revealedAt : null; }
 function validDate(value) {
@@ -119,6 +120,7 @@ function organizerView(e) {
     date: e.date,
     drawn: e.drawn,
     theme: eventTheme(e),
+    giftTheme: giftTheme(e),
     exclusions: e.exclusions || [],
     message: eventMessage(e),
     participants: e.participants.map((p, i) => ({
@@ -167,8 +169,9 @@ const server = http.createServer(async (req, res) => {
       if (new Set(names.map(n => n.toLocaleLowerCase('fr'))).size !== names.length) return error(res, 400, 'Les prénoms doivent être distincts. Ajoute une initiale si nécessaire.');
       if (!Number.isFinite(budget) || budget < 0 || budget > 100000) return error(res, 400, 'Budget invalide.');
       if (!validDate(date)) return error(res, 400, 'Date invalide.');
-      const theme = body.theme === undefined ? 'foret' : body.theme;
-      if (!THEMES.includes(theme)) return error(res, 400, 'Thème invalide.');
+      const theme = 'nuit';
+      if (body.giftTheme !== undefined && (typeof body.giftTheme !== 'string' || body.giftTheme.length > 200)) return error(res, 400, 'Thème des cadeaux : 200 caractères maximum.');
+      const giftTheme = (body.giftTheme || '').trim();
       const exclusions = body.exclusions === undefined ? [] : body.exclusions;
       if (!Array.isArray(exclusions) || exclusions.length > 2500 || exclusions.some(p => !Array.isArray(p) || p.length !== 2 || p.some(v => !Number.isInteger(v) || v < 0 || v >= names.length))) return error(res, 400, 'Exclusions invalides.');
       const uniqueExclusions = [...new Map(exclusions.map(p => [p.join(':'), p])).values()];
@@ -181,6 +184,7 @@ const server = http.createServer(async (req, res) => {
         budget,
         date,
         theme,
+        giftTheme,
         exclusions: uniqueExclusions,
         organizerToken,
         drawn: false,
@@ -191,11 +195,17 @@ const server = http.createServer(async (req, res) => {
       return send(res, 201, { organizerPath: '/organize/' + organizerToken });
     }
 
-    const orgMatch = pathname.match(/^\/api\/organize\/([A-Za-z0-9_-]+)(\/draw|\/messages)?$/);
+    const orgMatch = pathname.match(/^\/api\/organize\/([A-Za-z0-9_-]+)(\/draw|\/messages|\/gift-theme)?$/);
     if (orgMatch) {
       const e = Object.values(events).find(x => x.organizerToken === orgMatch[1]);
       if (!e) return error(res, 404, 'Événement introuvable.');
       if (req.method === 'GET' && !orgMatch[2]) return send(res, 200, organizerView(e));
+      if (req.method === 'PATCH' && orgMatch[2] === '/gift-theme') {
+        const body = await readJSON(req);
+        if (typeof body?.giftTheme !== 'string' || body.giftTheme.length > 200) return error(res,400,'Thème des cadeaux : 200 caractères maximum.');
+        e.giftTheme = body.giftTheme.trim(); save();
+        return send(res,200,{giftTheme: e.giftTheme});
+      }
       if (req.method === 'PATCH' && orgMatch[2] === '/messages') {
         const body = await readJSON(req);
         if (!body || typeof body !== 'object' || !validTemplate(body.message)) {
@@ -225,7 +235,8 @@ const server = http.createServer(async (req, res) => {
         if (req.method === 'POST' && giftMatch[2] === '/reveal') {
           if (!e.drawn) return error(res, 409, 'Le tirage n’a pas encore eu lieu.');
           if (!revelationDate(p)) { p.revealedAt = new Date().toISOString(); save(); }
-          return send(res, 200, { revealedAt: revelationDate(p) });
+          const recipient = e.participants[p.recipient];
+          return send(res, 200, { revealedAt: revelationDate(p), recipient: recipient.name, recipientWishlist: wishlistValue(recipient) });
         }
         if (giftMatch[2] || (req.method !== 'GET' && req.method !== 'PATCH')) return error(res, 405, 'Méthode non autorisée.');
         if (req.method === 'PATCH') {
@@ -235,13 +246,14 @@ const server = http.createServer(async (req, res) => {
           save();
           return send(res, 200, { wishlist: p.wishlist });
         }
-        const recipientIndex = e.drawn ? p.recipient : null;
+        const recipientIndex = e.drawn && revelationDate(p) ? p.recipient : null;
         const recipientParticipant = recipientIndex !== null ? e.participants[recipientIndex] : null;
         return send(res, 200, {
           title: e.title,
           budget: e.budget,
           date: e.date,
           theme: eventTheme(e),
+    giftTheme: giftTheme(e),
           giver: p.name,
           ...participantIdentity(p, participantIndex),
           drawn: e.drawn,
