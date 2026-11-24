@@ -216,6 +216,7 @@ async function organize(key) {
       <p class="hint">Espace organisateur · ${data.participants.length} participants</p>
       <div class="detail"><span>Budget</span><strong>${money(data.budget)}</strong></div>
       <div class="detail"><span>Remise des cadeaux</span><strong>${esc(formatDate(data.date))}</strong></div>
+      <div class="detail"><span>Thème des cadeaux</span><strong>${esc(data.giftTheme || 'Libre')}</strong></div>
       <div class="notice">Exclusions : ${Math.floor((data.exclusions || []).length / 2)} paire(s).</div>
       <div class="notice">🔐 <b>Conserve cette adresse organisateur en privé.</b> Elle donne accès aux liens individuels. Tu peux partager les liens avant ou après le tirage, avec le même message WhatsApp personnalisé.</div>
       ${data.drawn ? `<section class="progress-panel" aria-label="Suivi des découvertes">
@@ -224,7 +225,6 @@ async function organize(key) {
         <p class="small" id="updatedNotice" role="status">Actualisation automatique toutes les 15 secondes.</p>
       </section><div class="notice">✅ Tirage effectué. Les liens WhatsApp peuvent toujours être renvoyés avec le même message.</div>`
       : `<div class="notice">✉️ Les liens privés fonctionnent déjà : les amis peuvent compléter leurs souhaits avant le tirage.</div><p class="hint">Vérifie les prénoms avant de lancer le tirage : il sera définitif.</p><button id="draw" class="primary" type="button">🎲 Lancer le tirage</button>`}
-      <section class="wishlist-panel"><h3>Thème des cadeaux</h3><label for="editGiftTheme">Thème commun (facultatif)</label><input id="editGiftTheme" maxlength="200" value="${esc(data.giftTheme || '')}" placeholder="Ex. Fait main"><button type="button" id="saveGiftTheme" class="secondary">Enregistrer le thème</button><p id="giftThemeStatus" class="small" role="status"></p></section>
       <section class="message-editor" aria-labelledby="messagesTitle">
         <h3 id="messagesTitle">✉️ Personnaliser le message WhatsApp</h3>
         <p class="small">Le même message sera utilisé avant et après le tirage.</p>
@@ -288,13 +288,6 @@ async function organize(key) {
     templateInput.addEventListener('input', updateMessageUi);
     document.getElementById('previewPerson').onchange = updateMessageUi;
     updateMessageUi();
-    document.getElementById('saveGiftTheme').onclick = async () => {
-      const btn = document.getElementById('saveGiftTheme'); btn.disabled = true;
-      const status = document.getElementById('giftThemeStatus');
-      try { const result = await request(url + '/gift-theme', {method:'PATCH',body:JSON.stringify({giftTheme:document.getElementById('editGiftTheme').value})});
-        data.giftTheme=result.giftTheme; document.getElementById('editGiftTheme').value=result.giftTheme; status.textContent='✓ Thème enregistré.'; updateMessageUi();
-      } catch(err) { status.textContent=err.message; } finally {btn.disabled=false;}
-    };
     document.getElementById('saveMessages').onclick = async () => {
       const btn = document.getElementById('saveMessages'); btn.disabled = true;
       const notice = document.getElementById('messageSaveStatus'); notice.textContent = 'Enregistrement…';
@@ -370,12 +363,20 @@ function setupScratch(key, onRevealed) {
   const W=414,H=224;
   canvas.width=W; canvas.height=H;
   let ready=false, finished=false, pointer=null, last=null;
+  let nameLoaded=false, nameRequest=null;
+  const giftUrl='/api/gift/'+encodeURIComponent(key);
+  function loadRecipient() {
+    if (!ready || finished || nameLoaded || nameRequest) return;
+    nameRequest=request(giftUrl+'/recipient').then(result=>{
+      if(!finished){document.getElementById('recipientName').textContent=result.recipient;nameLoaded=true;}
+    }).catch(()=>{}).finally(()=>{nameRequest=null;});
+  }
   async function reveal() {
     if (finished) return;
     finished=true; pointer=null; skip.disabled=true;
     status.textContent='Découverte en cours…';
     try {
-      const result=await request('/api/gift/'+encodeURIComponent(key)+'/reveal',{method:'POST'});
+      const result=await request(giftUrl+'/reveal',{method:'POST'});
       onRevealed(result);
       surface.classList.add('is-revealed');
       status.hidden=true; skip.hidden=true; celebrate();
@@ -412,8 +413,8 @@ function setupScratch(key, onRevealed) {
     status.textContent='Zone grattée : '+percent+' %';
     if(remaining===0)reveal();
   }
-  canvas.addEventListener('pointerdown',e=>{if(!ready||finished||pointer!==null)return;e.preventDefault();pointer=e.pointerId;canvas.setPointerCapture(pointer);last=point(e);scratch(last,last);check();});
-  canvas.addEventListener('pointermove',e=>{if(finished||pointer!==e.pointerId)return;e.preventDefault();const p=point(e);scratch(last,p);last=p;check();});
+  canvas.addEventListener('pointerdown',e=>{if(!ready||finished||pointer!==null)return;e.preventDefault();pointer=e.pointerId;canvas.setPointerCapture(pointer);last=point(e);loadRecipient();scratch(last,last);check();});
+  canvas.addEventListener('pointermove',e=>{if(finished||pointer!==e.pointerId)return;e.preventDefault();const p=point(e);loadRecipient();scratch(last,p);last=p;check();});
   function stop(e){if(pointer===e.pointerId){pointer=null;last=null;check();}}
   canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);canvas.addEventListener('lostpointercapture',stop);
 }
