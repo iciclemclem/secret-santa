@@ -16,12 +16,12 @@ function message(text) {
 function fail(err) { message(err.message || String(err)); }
 function card(html) { root.innerHTML = '<section class="card">' + html + '</section>'; }
 function applyTheme(theme) {
-  document.body.dataset.theme = ['foret','rouge','nuit'].includes(theme) ? theme : 'foret';
+  document.body.dataset.theme = 'nuit';
   decorateScene(document.body.dataset.theme);
 }
 const themeEmoji = theme => ({ foret:'🎄', rouge:'🎁', nuit:'✨' }[theme] || '🎁');
 function decorateScene(theme) {
-  document.body.dataset.theme = ['foret','rouge','nuit'].includes(theme) ? theme : 'foret';
+  document.body.dataset.theme = 'nuit';
   const snow = document.querySelector('.snow');
   if (snow) snow.textContent = theme === 'nuit' ? '❄  ✦  ❄' : '❄  ✧  ❄';
 }
@@ -88,13 +88,13 @@ function home() {
   card(`<h2>Organise ton échange 🎄</h2>
     <p class="hint">Crée ton événement, puis invite les amis avant le tirage. Chaque personne aura son lien privé pour renseigner ses souhaits puis découvrir son destinataire.</p>
     <form id="eventForm">
-      <label for="title">Nom de l'événement</label><input id="title" maxlength="100" value="Le Noël des copains" required>
+      <label for="title">Nom de l'événement</label><input id="title" maxlength="100" placeholder="Ex. Noël entre amis" required>
       <div class="row"><div><label for="budget">Budget maximum (€)</label><input id="budget" type="number" min="0" max="100000" step="0.01" value="25" required></div><div><label for="date">Date de remise (facultatif)</label><input id="date" type="date"></div></div>
-      <label for="theme">Ambiance de Noël</label><select id="theme"><option value="foret">🌲 Forêt traditionnelle</option><option value="rouge">🎄 Rouge & or</option><option value="nuit">🌙 Nuit étoilée</option></select>
+      <label for="giftTheme">Thème des cadeaux (facultatif)</label><input id="giftTheme" maxlength="200" placeholder="Ex. Fait main, cocooning, gourmandises…"><p class="small">Une idée commune pour guider les participants.</p>
       <label for="name">Participants</label><div id="names"></div>
       <div class="add"><input id="name" maxlength="60" placeholder="Prénom d'un ami" autocomplete="off"><button id="add" class="secondary" type="button">+ Ajouter</button></div>
       <p class="small">2 à 50 personnes. Les liens privés seront créés dès la validation.</p>
-      <section id="exclusionSettings" class="exclusion-settings"><h3>❤️ Exclusions entre participants</h3><p class="small">Choisis deux personnes : elles ne pourront pas se tirer l'une l'autre.</p>
+      <section id="exclusionSettings" class="exclusion-settings"><h3>Exclusions entre participants</h3><p class="small">Choisis deux personnes : elles ne pourront pas se tirer l'une l'autre.</p>
         <div class="exclusion-picker"><div><label for="exclusionA">Participant 1</label><select id="exclusionA"></select></div><div><label for="exclusionB">Participant 2</label><select id="exclusionB"></select></div></div>
         <button type="button" class="secondary add-exclusion" id="addExclusion">+ Ajouter l'exclusion</button>
         <div id="exclusionPairs" class="exclusion-list" aria-live="polite"></div>
@@ -152,7 +152,6 @@ function home() {
     exclusions.add(pair); message(''); renderExclusions();
     document.getElementById('exclusionA').value = ''; document.getElementById('exclusionB').value = '';
   };
-  document.getElementById('theme').onchange = e => applyTheme(e.target.value);
   function add() {
     const input = document.getElementById('name'), n = input.value.trim(); if (!n) return;
     if (names.some(x => x.toLocaleLowerCase('fr') === n.toLocaleLowerCase('fr'))) return message('Ce prénom est déjà présent.');
@@ -171,7 +170,7 @@ function home() {
         budget:document.getElementById('budget').value,
         date:document.getElementById('date').value,
         names,
-        theme:document.getElementById('theme').value,
+        giftTheme:document.getElementById('giftTheme').value,
         exclusions:[...exclusions].flatMap(k => { const [i, j] = k.split(':').map(Number); return [[i, j], [j, i]]; })
       })});
       location.assign(data.organizerPath);
@@ -199,9 +198,10 @@ function invitationText(event, person, template) {
     evenement: event.title,
     budget: money(event.budget),
     date: formatDate(event.date),
+    theme: event.giftTheme || 'Libre',
     lien: location.origin + person.path
   };
-  return template.replace(/\{(prenom|emoji|evenement|budget|date|lien)\}/g, (_, key) => values[key]);
+  return template.replace(/\{(prenom|emoji|evenement|budget|date|lien|theme)\}/g, (_, key) => values[key]);
 }
 let organizerRefreshTimer = null;
 let organizerFocusListener = null;
@@ -216,7 +216,7 @@ async function organize(key) {
       <p class="hint">Espace organisateur · ${data.participants.length} participants</p>
       <div class="detail"><span>Budget</span><strong>${money(data.budget)}</strong></div>
       <div class="detail"><span>Remise des cadeaux</span><strong>${esc(formatDate(data.date))}</strong></div>
-      <div class="notice">🎨 Thème : ${esc(themeNames[data.theme] || 'Forêt')} · Exclusions : ${Math.floor((data.exclusions || []).length / 2)} paire(s).</div>
+      <div class="notice">Exclusions : ${Math.floor((data.exclusions || []).length / 2)} paire(s).</div>
       <div class="notice">🔐 <b>Conserve cette adresse organisateur en privé.</b> Elle donne accès aux liens individuels. Tu peux partager les liens avant ou après le tirage, avec le même message WhatsApp personnalisé.</div>
       ${data.drawn ? `<section class="progress-panel" aria-label="Suivi des découvertes">
         <div class="progress-head"><div><div class="progress-label">Suivi des découvertes</div><div class="progress-numbers"><strong id="revealedCount">0</strong><span> / ${data.participants.length} tickets découverts</span></div></div><button id="refresh" type="button" class="outline small-button">↻ Actualiser</button></div>
@@ -224,10 +224,11 @@ async function organize(key) {
         <p class="small" id="updatedNotice" role="status">Actualisation automatique toutes les 15 secondes.</p>
       </section><div class="notice">✅ Tirage effectué. Les liens WhatsApp peuvent toujours être renvoyés avec le même message.</div>`
       : `<div class="notice">✉️ Les liens privés fonctionnent déjà : les amis peuvent compléter leurs souhaits avant le tirage.</div><p class="hint">Vérifie les prénoms avant de lancer le tirage : il sera définitif.</p><button id="draw" class="primary" type="button">🎲 Lancer le tirage</button>`}
+      <section class="wishlist-panel"><h3>Thème des cadeaux</h3><label for="editGiftTheme">Thème commun (facultatif)</label><input id="editGiftTheme" maxlength="200" value="${esc(data.giftTheme || '')}" placeholder="Ex. Fait main"><button type="button" id="saveGiftTheme" class="secondary">Enregistrer le thème</button><p id="giftThemeStatus" class="small" role="status"></p></section>
       <section class="message-editor" aria-labelledby="messagesTitle">
         <h3 id="messagesTitle">✉️ Personnaliser le message WhatsApp</h3>
         <p class="small">Le même message sera utilisé avant et après le tirage.</p>
-        <p class="small">Variables disponibles : <code>{prenom}</code> <code>{emoji}</code> <code>{evenement}</code> <code>{budget}</code> <code>{date}</code> <code>{lien}</code>. Garde impérativement <code>{lien}</code> dans le texte.</p>
+        <p class="small">Variables disponibles : <code>{prenom}</code> <code>{emoji}</code> <code>{evenement}</code> <code>{budget}</code> <code>{date}</code> <code>{lien}</code> <code>{theme}</code>. Garde impérativement <code>{lien}</code> dans le texte.</p>
         <label for="messageTemplate">Message personnalisé</label><textarea id="messageTemplate" rows="8" maxlength="1800">${esc(data.message)}</textarea>
         <button id="saveMessages" type="button" class="secondary message-save">Enregistrer le message</button>
         <p id="messageSaveStatus" class="small" role="status">Le message actuel est enregistré.</p>
@@ -261,7 +262,7 @@ async function organize(key) {
 
     function validateClient(t) {
       return t.includes('{lien}') && t.trim().length >= 10 && t.length <= 1800 &&
-        (t.match(/\{[^{}]*\}/g) || []).every(tag => ['{prenom}','{emoji}','{evenement}','{budget}','{date}','{lien}'].includes(tag));
+        (t.match(/\{[^{}]*\}/g) || []).every(tag => ['{prenom}','{emoji}','{evenement}','{budget}','{date}','{lien}','{theme}'].includes(tag));
     }
     function updateMessageUi() {
       const draft = templateInput.value;
@@ -287,6 +288,13 @@ async function organize(key) {
     templateInput.addEventListener('input', updateMessageUi);
     document.getElementById('previewPerson').onchange = updateMessageUi;
     updateMessageUi();
+    document.getElementById('saveGiftTheme').onclick = async () => {
+      const btn = document.getElementById('saveGiftTheme'); btn.disabled = true;
+      const status = document.getElementById('giftThemeStatus');
+      try { const result = await request(url + '/gift-theme', {method:'PATCH',body:JSON.stringify({giftTheme:document.getElementById('editGiftTheme').value})});
+        data.giftTheme=result.giftTheme; document.getElementById('editGiftTheme').value=result.giftTheme; status.textContent='✓ Thème enregistré.'; updateMessageUi();
+      } catch(err) { status.textContent=err.message; } finally {btn.disabled=false;}
+    };
     document.getElementById('saveMessages').onclick = async () => {
       const btn = document.getElementById('saveMessages'); btn.disabled = true;
       const notice = document.getElementById('messageSaveStatus'); notice.textContent = 'Enregistrement…';
@@ -354,116 +362,60 @@ async function organize(key) {
 function setupScratch(key, onRevealed) {
   const canvas = document.getElementById('scratchCanvas');
   const surface = document.getElementById('scratchTicket');
+  const img = surface.querySelector('.scratch-poster');
   const status = document.getElementById('scratchStatus');
   const skip = document.getElementById('revealWithoutScratch');
-  if (!canvas || !surface) return;
-  const ctx = canvas.getContext('2d', { willReadFrequently:true });
-  let finished = false, active = false, last = null, moves = 0;
+  const ctx = canvas.getContext('2d', {willReadFrequently:true});
+  // Coordonnées intrinsèques, identiques aux pourcentages CSS de la zone centrale.
+  const W=414,H=224;
+  canvas.width=W; canvas.height=H;
+  let ready=false, finished=false, pointer=null, last=null;
   async function reveal() {
     if (finished) return;
-    finished = true; active = false;
-    status.textContent = 'Enregistrement de ta découverte…';
-    skip.disabled = true; canvas.style.pointerEvents = 'none';
+    finished=true; pointer=null; skip.disabled=true;
+    status.textContent='Découverte en cours…';
     try {
-      await request('/api/gift/' + encodeURIComponent(key) + '/reveal', { method:'POST' });
+      const result=await request('/api/gift/'+encodeURIComponent(key)+'/reveal',{method:'POST'});
+      onRevealed(result);
       surface.classList.add('is-revealed');
-      status.hidden = true;
-      skip.hidden = true; celebrate(); onRevealed();
-      window.setTimeout(() => { if (canvas.isConnected) canvas.hidden = true; }, 850);
-    } catch (err) {
-      finished = false; skip.disabled = false; skip.hidden = false;
-      skip.textContent = 'Réessayer l’enregistrement'; canvas.style.pointerEvents = 'auto';
-      status.textContent = '⚠️ Ta découverte n’a pas été enregistrée. Réessaie pour la conserver : ' + err.message;
+      status.hidden=true; skip.hidden=true; celebrate();
+      setTimeout(()=>{canvas.hidden=true;},750);
+    } catch(err) {
+      finished=false; skip.disabled=false; status.textContent='La découverte n’a pas été enregistrée. Réessaie : '+err.message;
+      skip.textContent='Réessayer la révélation';
     }
   }
-  skip.addEventListener('click', reveal);
-  if (!ctx) {
-    canvas.hidden = true; status.textContent = 'Utilise le bouton pour révéler ton destinataire.'; skip.textContent = 'Révéler mon destinataire'; return;
+  skip.addEventListener('click',reveal);
+  function activate() {
+    if(ready||finished||!ctx||!img.naturalWidth)return;
+    // L’image est intégralement chargée avant d’afficher le cadre et d’activer le grattage.
+    ctx.fillStyle='#d9d7d0';ctx.fillRect(0,0,W,H);
+    ctx.drawImage(img,img.naturalWidth*.12,img.naturalHeight*.31,img.naturalWidth*.76,img.naturalHeight*.31,0,0,W,H);
+    ready=true;surface.classList.add('scratch-ready');
+    status.textContent='Zone grattée : 0 %';
   }
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = surface.clientWidth, h = surface.clientHeight;
-  canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-  ctx.setTransform(canvas.width / w, 0, 0, canvas.height / h, 0, 0);
-
-  function drawFallback() {
-    const metallic = ctx.createLinearGradient(0, 0, w, h);
-    metallic.addColorStop(0, '#a8b6b2'); metallic.addColorStop(.23, '#e5ebe4');
-    metallic.addColorStop(.49, '#a1aaa7'); metallic.addColorStop(.74, '#d6dfd9'); metallic.addColorStop(1, '#a8b5ae');
-    ctx.fillStyle = metallic; ctx.fillRect(0, 0, w, h);
-    for (let x = -h; x < w + h; x += 16) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + h, h); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,.24)'; ctx.stroke(); }
+  function failed(){if(!ready&&!finished)status.textContent='Image indisponible. Tu peux révéler sans gratter ou actualiser la page.';}
+  img.addEventListener('load',activate,{once:true});img.addEventListener('error',failed,{once:true});
+  if(img.complete){if(img.naturalWidth)activate();else failed();}
+  if(!ctx)failed();
+  function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
+  function scratch(a,b){
+    ctx.globalCompositeOperation='destination-out';ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=58;ctx.strokeStyle='#000';ctx.fillStyle='#000';
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.beginPath();ctx.arc(b.x,b.y,29,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
   }
-  const scratchZone = {
-    x: w * 0.12,
-    y: h * 0.31,
-    width: w * 0.76,
-    height: h * 0.31,
-    radius: 20
-  };
-  function drawCoverVisual() {
-    ctx.clearRect(0, 0, w, h);
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(w / img.width, h / img.height);
-      const sw = img.width * scale, sh = img.height * scale;
-      const dx = (w - sw) / 2, dy = (h - sh) / 2;
-      ctx.drawImage(img, dx, dy, sw, sh);
-    };
-    img.onerror = drawFallback;
-    img.src = '/ticket-avant-decouverte.png';
+  function check(){
+    if(!ready||finished)return;
+    const rgba=ctx.getImageData(0,0,W,H).data;let remaining=0;
+    // Tous les pixels sont contrôlés, pas un échantillon ni un pourcentage arrondi.
+    for(let i=3;i<rgba.length;i+=4)if(rgba[i]>0)remaining++;
+    const percent=Math.floor(100*(W*H-remaining)/(W*H));
+    status.textContent='Zone grattée : '+percent+' %';
+    if(remaining===0)reveal();
   }
-  drawCoverVisual();
-
-  function point(e) { const r = canvas.getBoundingClientRect(); return { x:(e.clientX - r.left) * w / r.width, y:(e.clientY - r.top) * h / r.height }; }
-  function isInScratchZone(p) {
-    return p.x >= scratchZone.x && p.x <= scratchZone.x + scratchZone.width && p.y >= scratchZone.y && p.y <= scratchZone.y + scratchZone.height;
-  }
-  function scratch(a, b) {
-    ctx.save();
-    roundRect(ctx, scratchZone.x, scratchZone.y, scratchZone.width, scratchZone.height, scratchZone.radius);
-    ctx.clip();
-    ctx.globalCompositeOperation = 'destination-out'; ctx.strokeStyle = '#000'; ctx.lineWidth = 42;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    ctx.beginPath(); ctx.arc(b.x, b.y, 21, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    ctx.globalCompositeOperation = 'source-over';
-  }
-  function check() {
-    if (finished) return;
-    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data; let transparent = 0, total = 0;
-    const step = 14;
-    const startX = Math.round(scratchZone.x * canvas.width / w);
-    const endX = Math.round((scratchZone.x + scratchZone.width) * canvas.width / w);
-    const startY = Math.round(scratchZone.y * canvas.height / h);
-    const endY = Math.round((scratchZone.y + scratchZone.height) * canvas.height / h);
-    for (let y = startY; y < endY; y += step) {
-      for (let x = startX; x < endX; x += step) {
-        total++;
-        if (pixels[(y * canvas.width + x) * 4 + 3] < 110) transparent++;
-      }
-    }
-    if (transparent / total >= .90) reveal(); else status.textContent = 'Continue de gratter la zone centrale du ticket…';
-  }
-  canvas.addEventListener('pointerdown', e => {
-    if (finished) return;
-    const p = point(e);
-    if (!isInScratchZone(p)) return;
-    e.preventDefault(); active = true; last = p; canvas.setPointerCapture(e.pointerId); scratch(last, last);
-  });
-  canvas.addEventListener('pointermove', e => {
-    if (!active || finished) return;
-    e.preventDefault(); const p = point(e); scratch(last, p); last = p; moves++; if (moves % 12 === 0) check();
-  });
-  const stop = () => { if (active) { active = false; last = null; check(); } };
-  canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop); canvas.addEventListener('lostpointercapture', stop);
-}
-function roundRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + width, y, x + width, y + height, radius);
-  ctx.arcTo(x + width, y + height, x, y + height, radius);
-  ctx.arcTo(x, y + height, x, y, radius);
-  ctx.arcTo(x, y, x + width, y, radius);
-  ctx.closePath();
+  canvas.addEventListener('pointerdown',e=>{if(!ready||finished||pointer!==null)return;e.preventDefault();pointer=e.pointerId;canvas.setPointerCapture(pointer);last=point(e);scratch(last,last);check();});
+  canvas.addEventListener('pointermove',e=>{if(finished||pointer!==e.pointerId)return;e.preventDefault();const p=point(e);scratch(last,p);last=p;check();});
+  function stop(e){if(pointer===e.pointerId){pointer=null;last=null;check();}}
+  canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);canvas.addEventListener('lostpointercapture',stop);
 }
 
 async function gift(key) {
@@ -473,15 +425,16 @@ async function gift(key) {
     const alreadyRevealed = Boolean(d.drawn && d.revealedAt);
     card(`<h2 class="center">Bonjour ${esc(d.giver)} !</h2>
       <p class="center muted">${esc(d.title)}</p>
+      <div class="wishlist-panel gift-theme-panel"><h3>Thème des cadeaux</h3><p class="wish-text">${esc(d.giftTheme || 'Libre – laisse parler ton imagination !')}</p></div>
       ${d.drawn ? `<p class="center muted ticket-intro">${alreadyRevealed ? 'Tu as déjà découvert ton destinataire.' : 'Gratte la zone centrale du ticket pour découvrir ton destinataire.'}</p>
         <div class="scratch-ticket poster-ticket ${alreadyRevealed ? 'is-revealed' : ''}" id="scratchTicket">
-          <img src="/ticket-avant-decouverte.png" alt="Ticket à gratter avant découverte" class="scratch-poster">
-          <div class="scratch-prize scratch-prize-balloon-zone"><span>TON DESTINATAIRE SECRET</span><strong>${esc(d.recipient)}</strong><span class="scratch-sparkles" aria-hidden="true">✦ ✦ ✦</span></div>
+          <img src="/ticket-avant-decouverte.png" alt="Ticket à gratter de Noël" class="scratch-poster">
+          <div class="scratch-prize scratch-prize-balloon-zone"><span>TON DESTINATAIRE SECRET</span><strong id="recipientName">${alreadyRevealed?esc(d.recipient):''}</strong><span class="scratch-sparkles" aria-hidden="true">✦ ✦ ✦</span></div>
           ${alreadyRevealed ? '' : '<canvas id="scratchCanvas" class="scratch-cover" aria-label="Ticket à gratter : glisse ton doigt ou ta souris pour révéler le prénom"></canvas>'}
         </div>
-        ${alreadyRevealed ? '' : '<p class="small center" id="scratchStatus" role="status">Glisse ton doigt ou ta souris sur la zone centrale.</p>'}
+        ${alreadyRevealed ? '' : '<p class="small center" id="scratchStatus" role="status">Chargement du ticket…</p>'}
         ${alreadyRevealed ? '' : '<button type="button" class="scratch-access" id="revealWithoutScratch">Révéler sans gratter</button>'}
-        <div id="recipientWishes" class="wishlist-panel" ${alreadyRevealed ? '' : 'hidden'}><h3>🎁 Les envies de ${esc(d.recipient)}</h3><p id="recipientWishText" class="wish-text">${esc(d.recipientWishlist || 'Aucune idée de cadeau renseignée pour le moment.')}</p></div>`
+        <div id="recipientWishes" class="wishlist-panel" ${alreadyRevealed ? '' : 'hidden'}><h3 id="recipientWishTitle">🎁 Les envies${alreadyRevealed?' de '+esc(d.recipient):''}</h3><p id="recipientWishText" class="wish-text">${esc(d.recipientWishlist || 'Aucune idée de cadeau renseignée pour le moment.')}</p></div>`
       : '<div class="notice center waiting-notice"><div class="waiting-icon" aria-hidden="true">⏳</div><div>Le tirage n’a pas encore eu lieu.<br>Reviens bientôt avec ce même lien.</div></div>'}
       <div class="detail"><span>Budget maximum</span><strong>${money(d.budget)}</strong></div>
       <div class="detail"><span>Date de remise</span><strong>${esc(formatDate(d.date))}</strong></div>
@@ -489,7 +442,12 @@ async function gift(key) {
         <label for="wishlist">Mes envies (1500 caractères maximum)</label><textarea id="wishlist" maxlength="1500" rows="4" placeholder="Livres, jeux, gourmandises, surprises…">${esc(d.wishlist)}</textarea>
         <button id="saveWishlist" class="secondary" type="button">Enregistrer mes souhaits</button><p id="wishMessage" class="small" role="status"></p>
       </div><p class="small center">🤫 Garde ton destinataire secret jusqu’à l’échange !</p>`);
-    if (d.drawn && !alreadyRevealed) setupScratch(key, () => { document.getElementById('recipientWishes').hidden = false; });
+    if (d.drawn && !alreadyRevealed) setupScratch(key, result => {
+      document.getElementById('recipientName').textContent=result.recipient;
+      document.getElementById('recipientWishTitle').textContent='🎁 Les envies de '+result.recipient;
+      document.getElementById('recipientWishText').textContent=result.recipientWishlist||'Aucune idée de cadeau renseignée pour le moment.';
+      document.getElementById('recipientWishes').hidden=false;
+    });
     document.getElementById('saveWishlist').onclick = async () => {
       const btn = document.getElementById('saveWishlist'); btn.disabled = true;
       const status = document.getElementById('wishMessage'); status.textContent = 'Enregistrement…';

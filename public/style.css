@@ -253,3 +253,27 @@ body::after{bottom:8vh;height:20vh;opacity:.14;background:
 body[data-theme="nuit"] .firework-burst{background:radial-gradient(circle,#fff7d6 0%, #ffd36a 45%, rgba(255,211,106,.1) 60%, transparent 61%)}
 @media(max-width:620px){.scratch-prize-balloon-zone{left:11.5%;right:11.5%;top:32.4%;height:29.5%;padding:12px 12px 13px}}
 @media(prefers-reduced-motion:reduce){.fireworks-layer{display:none}}
+
+/* V5.4 — Contraste nocturne et zone de grattage réellement indépendante. */
+body[data-theme="nuit"] .card{background:#f9fafc;color:#183b36}
+body[data-theme="nuit"] .card .hint,body[data-theme="nuit"] .card .muted,body[data-theme="nuit"] .card .small,body[data-theme="nuit"] .card .detail span{color:#455b63}
+body[data-theme="nuit"] .card .save-ok{color:#216343}
+body[data-theme="nuit"] .card .save-unsaved{color:#805219}
+body[data-theme="nuit"] .card .save-error{color:#98332d}
+body[data-theme="nuit"] footer{color:#e0e8f1}
+.poster-ticket{width:100%;max-width:430px;height:auto;aspect-ratio:auto;border-radius:16px;overflow:hidden;background:#0d2131}
+.poster-ticket .scratch-poster{position:relative;display:block;width:100%;height:auto;aspect-ratio:1089/1444;object-fit:contain}
+.poster-ticket .scratch-prize-balloon-zone,.poster-ticket .scratch-cover{position:absolute;inset:auto;left:12%;top:31%;width:76%;height:31%;right:auto;bottom:auto;margin:0;min-height:0;max-height:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none}
+.poster-ticket .scratch-prize-balloon-zone{visibility:hidden;overflow:hidden;background:#fff7eb;gap:clamp(3px,1.2vw,8px);padding:6px;text-align:center}
+.poster-ticket.scratch-ready .scratch-prize-balloon-zone,.poster-ticket.is-revealed .scratch-prize-balloon-zone{visibility:visible}
+.poster-ticket .scratch-prize-balloon-zone span:first-child{font-size:clamp(8px,2.25vw,12px);letter-spacing:1.4px;color:#70434b}
+.poster-ticket .scratch-prize-balloon-zone strong{font-size:clamp(19px,6.3vw,37px);line-height:1.05;color:#813f4b;overflow-wrap:anywhere;max-width:100%}
+.poster-ticket .scratch-prize-balloon-zone .scratch-sparkles{font-size:15px;color:#a47c25;letter-spacing:6px}
+.poster-ticket .scratch-cover{visibility:hidden;background:transparent;touch-action:none;cursor:crosshair;z-index:2}
+.poster-ticket.scratch-ready .scratch-cover{visibility:visible}
+.poster-ticket.is-revealed .scratch-cover{pointer-events:none;opacity:0}
+.poster-ticket.is-revealed .scratch-prize-balloon-zone{animation:prize-glow .65s ease-out}
+@keyframes prize-glow{from{filter:brightness(1.3)}to{filter:brightness(1)}}
+.gift-theme-panel{border-color:#d8e1ea;background:#f2f6fb!important}.gift-theme-panel .wish-text{margin:5px 0;color:#27444b;font-weight:600}
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){.poster-ticket.is-revealed .scratch-prize-balloon-zone{animation:none}}
