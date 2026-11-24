@@ -15,70 +15,55 @@ function message(text) {
 }
 function fail(err) { message(err.message || String(err)); }
 function card(html) { root.innerHTML = '<section class="card">' + html + '</section>'; }
-function applyTheme(theme) { document.body.dataset.theme = ['foret','rouge','nuit'].includes(theme) ? theme : 'foret'; }
-
-const MOTIF_AMBIENCE = {
-  foret:['🌲','🍃','✨'], hiver:['❄️','🧊','✨'], dore:['⭐','✨','💫'],
-  nuit:['✨','🌟','🌙'], gourmand:['🍬','✨','🍪'], fete:['🎉','🎊','✨']
-};
-function personalizedDecor(emoji, style) {
-  const family = Object.hasOwn(MOTIF_AMBIENCE, style) ? style : 'fete';
-  document.body.dataset.emojiStyle = family;
-  document.querySelector('.emblem').textContent = emoji;
-  document.querySelector('.snow').textContent = emoji + '  ✧  ' + emoji + '  ✧  ' + emoji;
-  document.querySelector('.emoji-sky')?.remove();
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const sky = document.createElement('div');
-  sky.className = 'emoji-sky';
-  sky.dataset.style = family;
-  sky.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(sky);
-  const motifs = [emoji, emoji, ...MOTIF_AMBIENCE[family]];
-  for (let i = 0; i < 18; i++) {
-    const item = document.createElement('span');
-    item.textContent = motifs[i % motifs.length];
-    item.style.left = (Math.random() * 100) + '%';
-    item.style.animationDelay = (-Math.random() * 18) + 's';
-    item.style.animationDuration = (11 + Math.random() * 12) + 's';
-    item.style.fontSize = (14 + Math.random() * 14) + 'px';
-    sky.appendChild(item);
-  }
+function applyTheme(theme) {
+  document.body.dataset.theme = ['foret','rouge','nuit'].includes(theme) ? theme : 'foret';
+  decorateScene(document.body.dataset.theme);
 }
-function celebrate(emoji='🎁', style='fete') {
+const themeEmoji = theme => ({ foret:'🎄', rouge:'🎁', nuit:'✨' }[theme] || '🎁');
+function decorateScene(theme) {
+  document.body.dataset.theme = ['foret','rouge','nuit'].includes(theme) ? theme : 'foret';
+  const snow = document.querySelector('.snow');
+  if (snow) snow.textContent = theme === 'nuit' ? '❄  ✦  ❄' : '❄  ✧  ❄';
+}
+function celebrate(icon = '✨') {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const layer = document.createElement('div');
   layer.className = 'confetti-layer';
   layer.setAttribute('aria-hidden', 'true');
   document.body.appendChild(layer);
   const colors = ['#d3ad4d','#b53949','#237654','#f5e8c3','#8cbfda'];
-  for (let i = 0; i < 80; i++) {
+  const glyphs = ['✦','❄',icon,'•'];
+  for (let i = 0; i < 72; i++) {
     const bit = document.createElement('i');
     bit.style.left = (Math.random() * 100) + '%';
     bit.style.animationDelay = (Math.random() * .7) + 's';
-    bit.style.animationDuration = (2 + Math.random() * 2) + 's';
-    if (i % 4 === 0) {
+    bit.style.animationDuration = (2 + Math.random() * 1.8) + 's';
+    if (i % 3 === 0) {
       bit.className = 'motif-confetti';
-      bit.textContent = i % 8 === 0 ? emoji : (MOTIF_AMBIENCE[style]?.[i % 3] || '✨');
+      bit.textContent = glyphs[i % glyphs.length];
     } else {
       bit.style.background = colors[i % colors.length];
     }
     layer.appendChild(bit);
   }
-  setTimeout(() => layer.remove(), 5000);
+  setTimeout(() => layer.remove(), 4500);
 }
 function snowfall() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.querySelector('.snowfall')?.remove();
   const layer = document.createElement('div');
   layer.className = 'snowfall';
   layer.setAttribute('aria-hidden', 'true');
   document.body.appendChild(layer);
-  for (let i = 0; i < 24; i++) {
+  const glyphs = ['•','•','•','❄'];
+  for (let i = 0; i < 34; i++) {
     const flake = document.createElement('span');
-    flake.textContent = '❄';
+    flake.textContent = glyphs[i % glyphs.length];
     flake.style.left = (Math.random() * 100) + '%';
-    flake.style.animationDelay = (-Math.random() * 12) + 's';
-    flake.style.animationDuration = (8 + Math.random() * 8) + 's';
-    flake.style.fontSize = (9 + Math.random() * 13) + 'px';
+    flake.style.animationDelay = (-Math.random() * 18) + 's';
+    flake.style.animationDuration = (10 + Math.random() * 12) + 's';
+    flake.style.fontSize = (8 + Math.random() * 12) + 'px';
+    flake.style.opacity = (.25 + Math.random() * .6).toFixed(2);
     layer.appendChild(flake);
   }
 }
@@ -88,14 +73,14 @@ function home() {
   let names = [];
   let exclusions = new Set();
   card(`<h2>Organise ton échange 🎄</h2>
-    <p class="hint">Crée ton événement, puis invite les amis avant le tirage. Chacun recevra une décoration personnalisée, discrète et festive.</p>
+    <p class="hint">Crée ton événement, puis invite les amis avant le tirage. Chaque personne aura son lien privé pour renseigner ses souhaits puis découvrir son destinataire.</p>
     <form id="eventForm">
       <label for="title">Nom de l'événement</label><input id="title" maxlength="100" value="Le Noël des copains" required>
       <div class="row"><div><label for="budget">Budget maximum (€)</label><input id="budget" type="number" min="0" max="100000" step="0.01" value="25" required></div><div><label for="date">Date de remise (facultatif)</label><input id="date" type="date"></div></div>
       <label for="theme">Ambiance de Noël</label><select id="theme"><option value="foret">🌲 Forêt traditionnelle</option><option value="rouge">🎄 Rouge & or</option><option value="nuit">🌙 Nuit étoilée</option></select>
       <label for="name">Participants</label><div id="names"></div>
       <div class="add"><input id="name" maxlength="60" placeholder="Prénom d'un ami" autocomplete="off"><button id="add" class="secondary" type="button">+ Ajouter</button></div>
-      <p class="small">2 à 50 personnes. Chaque participant recevra un emoji de Noël différent après la création.</p>
+      <p class="small">2 à 50 personnes. Les liens privés seront créés dès la validation.</p>
       <section id="exclusionSettings" class="exclusion-settings"><h3>❤️ Exclusions entre participants</h3><p class="small">Choisis deux personnes : elles ne pourront pas se tirer l'une l'autre.</p>
         <div class="exclusion-picker"><div><label for="exclusionA">Participant 1</label><select id="exclusionA"></select></div><div><label for="exclusionB">Participant 2</label><select id="exclusionB"></select></div></div>
         <button type="button" class="secondary add-exclusion" id="addExclusion">+ Ajouter l'exclusion</button>
@@ -197,7 +182,7 @@ const revealTime = s => new Date(s).toLocaleString('fr-FR', { day:'2-digit', mon
 function invitationText(event, person, template) {
   const values = {
     prenom: person.name,
-    emoji: person.emoji || '🎁',
+    emoji: themeEmoji(event.theme),
     evenement: event.title,
     budget: money(event.budget),
     date: formatDate(event.date),
@@ -234,7 +219,7 @@ async function organize(key) {
         <button id="saveMessages" type="button" class="secondary message-save">Enregistrer le message</button>
         <p id="messageSaveStatus" class="small" role="status">Le message actuel est enregistré.</p>
         <div class="preview-panel"><div class="section-heading"><h3>Prévisualisation</h3><span class="small">Message tel qu'il sera envoyé</span></div>
-          <div class="preview-controls one-col"><div><label for="previewPerson">Destinataire</label><select id="previewPerson">${data.participants.map((p, i) => `<option value="${i}">${esc(p.emoji)} ${esc(p.name)}</option>`).join('')}</select></div></div>
+          <div class="preview-controls one-col"><div><label for="previewPerson">Destinataire</label><select id="previewPerson">${data.participants.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('')}</select></div></div>
           <pre id="invitationPreview" class="invite-preview"></pre>
         </div>
       </section>
@@ -248,7 +233,7 @@ async function organize(key) {
     data.participants.forEach((p, i) => {
       const row = document.createElement('div'); row.className = 'invite-row';
       const info = document.createElement('div'); info.className = 'invite-info';
-      const name = document.createElement('strong'); name.textContent = p.emoji + '  ' + p.name;
+      const name = document.createElement('strong'); name.textContent = p.name;
       const badge = document.createElement('span'); badge.className = 'status-chip status-pending'; badge.id = 'revealStatus-' + i;
       badge.textContent = data.drawn ? '◷ Pas encore découvert' : '⏳ Tirage à venir';
       info.append(name, badge);
@@ -353,7 +338,7 @@ async function organize(key) {
   }
 }
 
-function setupScratch(key, onRevealed, revealEmoji, revealStyle) {
+function setupScratch(key, onRevealed) {
   const canvas = document.getElementById('scratchCanvas');
   const surface = document.getElementById('scratchTicket');
   const status = document.getElementById('scratchStatus');
@@ -370,7 +355,7 @@ function setupScratch(key, onRevealed, revealEmoji, revealStyle) {
       await request('/api/gift/' + encodeURIComponent(key) + '/reveal', { method:'POST' });
       surface.classList.add('is-revealed');
       status.textContent = '🎉 Ton ticket est découvert et le restera à ta prochaine visite !';
-      skip.hidden = true; celebrate(revealEmoji, revealStyle); onRevealed();
+      skip.hidden = true; celebrate(); onRevealed();
       window.setTimeout(() => { if (canvas.isConnected) canvas.hidden = true; }, 850);
     } catch (err) {
       finished = false; skip.disabled = false; skip.hidden = false;
@@ -395,10 +380,10 @@ function setupScratch(key, onRevealed, revealEmoji, revealStyle) {
     for (let x = -h; x < w + h; x += 16) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + h, h); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,.24)'; ctx.stroke(); }
   }
   const scratchZone = {
-    x: w * 0.065,
-    y: h * 0.285,
-    width: w * 0.83,
-    height: h * 0.445,
+    x: w * 0.12,
+    y: h * 0.275,
+    width: w * 0.76,
+    height: h * 0.425,
     radius: 20
   };
   function drawCoverVisual() {
@@ -443,7 +428,7 @@ function setupScratch(key, onRevealed, revealEmoji, revealStyle) {
         if (pixels[(y * canvas.width + x) * 4 + 3] < 110) transparent++;
       }
     }
-    if (transparent / total >= .38) reveal(); else status.textContent = 'Continue de gratter pour découvrir le prénom…';
+    if (transparent / total >= .38) reveal(); else status.textContent = 'Continue de gratter la zone centrale du ticket…';
   }
   canvas.addEventListener('pointerdown', e => {
     if (finished) return;
@@ -472,21 +457,18 @@ async function gift(key) {
   try {
     const d = await request('/api/gift/' + encodeURIComponent(key));
     applyTheme(d.theme);
-    personalizedDecor(d.emoji, d.emojiStyle);
     const alreadyRevealed = Boolean(d.drawn && d.revealedAt);
-    const revealEmoji = d.recipientEmoji || d.emoji;
-    const revealStyle = d.recipientEmojiStyle || d.emojiStyle;
-    card(`<div class="identity-banner"><div class="identity-orb" aria-hidden="true">${esc(d.emoji)}</div><div class="identity-label">Décoration personnalisée <strong>${esc(d.giver)}</strong></div></div><h2 class="center">Bonjour ${esc(d.giver)} !</h2>
+    card(`<h2 class="center">Bonjour ${esc(d.giver)} !</h2>
       <p class="center muted">${esc(d.title)}</p>
-      ${d.drawn ? `<p class="center">${alreadyRevealed ? 'Tu as déjà découvert ton destinataire !' : 'Ton destinataire se cache dans les ballons. Gratte pour le découvrir !'}</p>
+      ${d.drawn ? `<p class="center muted ticket-intro">${alreadyRevealed ? 'Tu as déjà découvert ton destinataire.' : 'Gratte la zone centrale du ticket pour découvrir ton destinataire.'}</p>
         <div class="scratch-ticket poster-ticket ${alreadyRevealed ? 'is-revealed' : ''}" id="scratchTicket">
           <img src="/ticket-avant-decouverte.png" alt="Ticket à gratter avant découverte" class="scratch-poster">
-          <div class="scratch-prize scratch-prize-balloon-zone"><span>TON DESTINATAIRE SECRET</span><strong>${esc(d.recipient)}</strong><span class="scratch-sparkles" aria-hidden="true">${esc(revealEmoji)} ✨ ${esc(revealEmoji)}</span></div>
+          <div class="scratch-prize scratch-prize-balloon-zone"><span>TON DESTINATAIRE SECRET</span><strong>${esc(d.recipient)}</strong><span class="scratch-sparkles" aria-hidden="true">✦ ✦ ✦</span></div>
           ${alreadyRevealed ? '' : '<canvas id="scratchCanvas" class="scratch-cover" aria-label="Ticket à gratter : glisse ton doigt ou ta souris pour révéler le prénom"></canvas>'}
         </div>
         <p class="small center" id="scratchStatus" role="status">${alreadyRevealed ? '✓ Ticket déjà découvert : aucun nouveau grattage nécessaire.' : 'Glisse ton doigt ou ta souris sur les ballons.'}</p>
         ${alreadyRevealed ? '' : '<button type="button" class="scratch-access" id="revealWithoutScratch">Révéler sans gratter</button>'}
-        <div id="recipientWishes" class="wishlist-panel" ${alreadyRevealed ? '' : 'hidden'}><h3>🎁 Les envies de ${esc(revealEmoji)} ${esc(d.recipient)}</h3><p id="recipientWishText" class="wish-text">${esc(d.recipientWishlist || 'Aucune idée de cadeau renseignée pour le moment.')}</p></div>`
+        <div id="recipientWishes" class="wishlist-panel" ${alreadyRevealed ? '' : 'hidden'}><h3>🎁 Les envies de ${esc(d.recipient)}</h3><p id="recipientWishText" class="wish-text">${esc(d.recipientWishlist || 'Aucune idée de cadeau renseignée pour le moment.')}</p></div>`
       : '<div class="notice center">Le tirage n’a pas encore eu lieu. Reviens bientôt avec ce même lien.</div>'}
       <div class="detail"><span>Budget maximum</span><strong>${money(d.budget)}</strong></div>
       <div class="detail"><span>Date de remise</span><strong>${esc(formatDate(d.date))}</strong></div>
@@ -494,7 +476,7 @@ async function gift(key) {
         <label for="wishlist">Mes envies (1500 caractères maximum)</label><textarea id="wishlist" maxlength="1500" rows="4" placeholder="Livres, jeux, gourmandises, surprises…">${esc(d.wishlist)}</textarea>
         <button id="saveWishlist" class="secondary" type="button">Enregistrer mes souhaits</button><p id="wishMessage" class="small" role="status"></p>
       </div><p class="small center">🤫 Garde ton destinataire secret jusqu’à l’échange !</p>`);
-    if (d.drawn && !alreadyRevealed) setupScratch(key, () => { document.getElementById('recipientWishes').hidden = false; }, revealEmoji, revealStyle);
+    if (d.drawn && !alreadyRevealed) setupScratch(key, () => { document.getElementById('recipientWishes').hidden = false; });
     document.getElementById('saveWishlist').onclick = async () => {
       const btn = document.getElementById('saveWishlist'); btn.disabled = true;
       const status = document.getElementById('wishMessage'); status.textContent = 'Enregistrement…';

@@ -128,3 +128,98 @@ body[data-emoji-style] .wishlist-panel{background:linear-gradient(150deg,#fff,va
 .identity-label strong{font-size:22px}
 @keyframes balloon-reveal{0%{transform:scale(.92);opacity:.25}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
 @media(max-width:530px){.poster-ticket{max-width:none}.scratch-prize-balloon-zone{left:10%;right:10%;top:34%;padding:12px 12px 14px}}
+
+/* V5.2 : simplification visuelle, fond hivernal plus réalisé et correctifs mobile. */
+:root{
+  --page-bg:#eff3ee;
+  --card-bg:rgba(255,255,255,.88);
+  --card-border:rgba(28,64,47,.10);
+  --text-main:#173b2c;
+  --text-soft:#68776f;
+  --accent:#1c6549;
+  --accent-soft:#b86a76;
+  --panel:#f7faf7;
+}
+body{position:relative;overflow-x:hidden;color:var(--text-main);background:
+  radial-gradient(circle at 10% 8%, rgba(255,255,255,.95), transparent 15%),
+  radial-gradient(circle at 85% 6%, rgba(255,255,255,.8), transparent 14%),
+  linear-gradient(180deg, #edf4ef 0%, #edf3ef 46%, #e6efe8 72%, #e1ece5 100%) !important;}
+body::before,
+body::after{content:"";position:fixed;left:0;right:0;pointer-events:none;z-index:0}
+body::before{bottom:0;height:24vh;opacity:.34;background:
+  radial-gradient(ellipse at 8% 100%, rgba(38,76,57,.18) 0 11%, transparent 11.4%),
+  radial-gradient(ellipse at 20% 100%, rgba(38,76,57,.12) 0 10%, transparent 10.4%),
+  radial-gradient(ellipse at 33% 100%, rgba(38,76,57,.16) 0 12%, transparent 12.4%),
+  radial-gradient(ellipse at 46% 100%, rgba(38,76,57,.10) 0 9%, transparent 9.4%),
+  radial-gradient(ellipse at 60% 100%, rgba(38,76,57,.17) 0 11%, transparent 11.4%),
+  radial-gradient(ellipse at 75% 100%, rgba(38,76,57,.12) 0 10%, transparent 10.4%),
+  radial-gradient(ellipse at 90% 100%, rgba(38,76,57,.18) 0 12%, transparent 12.4%),
+  linear-gradient(to top, rgba(255,255,255,.72), rgba(255,255,255,0));filter:blur(2px)}
+body::after{bottom:7vh;height:18vh;opacity:.18;background:
+  linear-gradient(135deg, transparent 42%, rgba(22,56,43,.92) 42.5%, transparent 43%) 0 100%/64px 100% repeat-x,
+  linear-gradient(225deg, transparent 42%, rgba(22,56,43,.92) 42.5%, transparent 43%) 32px 100%/64px 100% repeat-x,
+  linear-gradient(to top, rgba(22,56,43,.16), transparent 72%)}
+main{position:relative;z-index:1;max-width:740px;padding:18px 16px 44px}
+header{margin:4px 0 18px}
+.snow{color:#b19882;letter-spacing:10px;font-size:14px;padding-top:10px}
+h1{font-size:clamp(42px,8vw,58px);letter-spacing:-1.6px;color:#134834}
+.card{background:var(--card-bg);backdrop-filter:blur(12px);border:1px solid var(--card-border);box-shadow:0 18px 50px rgba(21,57,45,.08);border-radius:26px}
+.card h2{font-size:clamp(28px,4vw,42px);color:#143f2f}
+.hint,.muted,.small,.detail span,footer{color:var(--text-soft)}
+.notice,.progress-panel,.preview-panel,.message-editor,.wishlist-panel,.exclusion-settings{background:rgba(248,250,248,.92)}
+.notice{border:1px solid rgba(28,101,73,.09)}
+input,select,textarea{max-width:100%;min-width:0;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.94)}
+input[type="date"]{display:block}
+input[type="date"]::-webkit-date-and-time-value{text-align:left}
+.row,.add,.progress-head,.section-heading,.exclusion-picker,.preview-controls{min-width:0}
+.row>div,.preview-controls>div,.exclusion-picker>div{min-width:0}
+.add{align-items:stretch}
+.message-editor,.preview-panel,.progress-panel,.wishlist-panel,.exclusion-settings{box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.section-heading{align-items:flex-start;flex-wrap:wrap}
+.section-heading .small{white-space:normal}
+.preview-panel .section-heading{display:grid;gap:4px}
+.preview-panel .section-heading h3,.preview-panel .section-heading .small{margin:0}
+.preview-panel .section-heading .small{font-size:12px;line-height:1.4}
+.invite-row{background:rgba(255,255,255,.9)}
+button{box-shadow:none}
+.primary{background:linear-gradient(180deg,#216e51,#1b6047)}
+.secondary{background:#e7f0ea}
+.outline{background:rgba(255,255,255,.92)}
+.identity-banner,.identity-orb,.emoji-sky,.emblem,.eyebrow,.subtitle{display:none !important}
+.ticket-intro{margin:6px 0 10px;font-size:15px}
+.poster-ticket{max-width:430px;background:#0d2131;border:2px solid rgba(184,106,118,.9);box-shadow:0 16px 36px rgba(15,39,47,.2)}
+.scratch-poster{background:#0d2131}
+.scratch-prize-balloon-zone{left:13.5%;right:13.5%;top:35.5%;min-height:19%;padding:14px 16px 14px;border-radius:24px;background:rgba(250,242,238,.92);border:1px solid rgba(184,106,118,.28);box-shadow:0 14px 28px rgba(12,31,35,.18)}
+.scratch-prize-balloon-zone span:first-child{font-size:clamp(10px,2.4vw,12px);letter-spacing:3px;color:#9e5560}
+.scratch-prize-balloon-zone strong{font-size:clamp(32px,7.2vw,56px);color:#9e5560;text-shadow:none}
+.scratch-prize-balloon-zone .scratch-sparkles{font-size:18px;color:#c9a55a;letter-spacing:10px}
+.scratch-status-note{margin-top:6px}
+.whatsapp-button{background:#1e8f55}
+body[data-theme="rouge"]{background:linear-gradient(180deg,#f7efec 0%,#f0ebe7 58%,#e7e7e3 100%) !important}
+body[data-theme="rouge"] h1{color:#8f2f37}
+body[data-theme="rouge"] .primary{background:linear-gradient(180deg,#af4048,#95373d)}
+body[data-theme="nuit"]{background:linear-gradient(180deg,#213955 0%,#15324a 54%,#10263a 100%) !important;color:#f2ead8}
+body[data-theme="nuit"] .card{background:rgba(248,248,252,.92)}
+body[data-theme="nuit"] h1{color:#ffe7ad}
+body[data-theme="nuit"] .hint,body[data-theme="nuit"] .muted,body[data-theme="nuit"] .small,body[data-theme="nuit"] footer{color:#d4dbe3}
+body[data-theme="nuit"] .notice,body[data-theme="nuit"] .progress-panel,body[data-theme="nuit"] .preview-panel,body[data-theme="nuit"] .message-editor,body[data-theme="nuit"] .wishlist-panel,body[data-theme="nuit"] .exclusion-settings{background:rgba(246,248,252,.92);color:#21404c}
+body[data-theme="nuit"] .scratch-prize-balloon-zone{background:rgba(249,244,238,.95)}
+.snowfall{z-index:0;opacity:1}
+.snowfall span{color:rgba(255,255,255,.95);text-shadow:0 0 8px rgba(255,255,255,.35);animation:snow-fall 14s linear infinite}
+@keyframes snow-fall{0%{transform:translate3d(0,-4vh,0)}100%{transform:translate3d(24px,112vh,0)}}
+@media(max-width:620px){
+  main{padding-inline:12px}
+  .card{padding:18px 14px}
+  .section-heading{display:block}
+  .section-heading .small{display:block;margin-top:4px}
+  .preview-panel{padding:12px}
+  .message-editor{padding:14px}
+  .scratch-prize-balloon-zone{left:11.5%;right:11.5%;top:35%;padding:12px 12px 13px}
+}
+@media(max-width:530px){
+  .row,.add,.invite-actions,.exclusion-picker,.preview-controls{grid-template-columns:1fr;display:grid}
+  .add button,.invite-actions button,.whatsapp-button{width:100%}
+  .preview-panel .section-heading{display:block}
+  .preview-panel .section-heading .small{display:block;margin-top:4px}
+  .poster-ticket{max-width:100%}
+}
