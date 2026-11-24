@@ -1,8 +1,8 @@
 {
   "name": "secret-santa-prive",
-  "version": "5.5.0",
+  "version": "5.6.0",
   "private": true,
-  "description": "Secret Santa V5.5 : découverte progressive et thème des cadeaux fixe",
+  "description": "Secret Santa V5.6 : exclusions orientées et révélation à 95 %",
   "scripts": {
     "start": "node server.js",
     "test": "node --test"
