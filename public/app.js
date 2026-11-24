@@ -46,7 +46,20 @@ function celebrate(icon = '✨') {
     }
     layer.appendChild(bit);
   }
-  setTimeout(() => layer.remove(), 4500);
+  const fireworks = document.createElement('div');
+  fireworks.className = 'fireworks-layer';
+  fireworks.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(fireworks);
+  const positions = [[18,26],[50,18],[80,28],[32,42],[68,40]];
+  positions.forEach(([x,y], idx) => {
+    const burst = document.createElement('span');
+    burst.className = 'firework-burst';
+    burst.style.left = x + '%';
+    burst.style.top = y + '%';
+    burst.style.animationDelay = (idx * .16) + 's';
+    fireworks.appendChild(burst);
+  });
+  setTimeout(() => { layer.remove(); fireworks.remove(); }, 4800);
 }
 function snowfall() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -354,7 +367,7 @@ function setupScratch(key, onRevealed) {
     try {
       await request('/api/gift/' + encodeURIComponent(key) + '/reveal', { method:'POST' });
       surface.classList.add('is-revealed');
-      status.textContent = '🎉 Ton ticket est découvert et le restera à ta prochaine visite !';
+      status.hidden = true;
       skip.hidden = true; celebrate(); onRevealed();
       window.setTimeout(() => { if (canvas.isConnected) canvas.hidden = true; }, 850);
     } catch (err) {
@@ -381,9 +394,9 @@ function setupScratch(key, onRevealed) {
   }
   const scratchZone = {
     x: w * 0.12,
-    y: h * 0.275,
+    y: h * 0.31,
     width: w * 0.76,
-    height: h * 0.425,
+    height: h * 0.31,
     radius: 20
   };
   function drawCoverVisual() {
@@ -428,7 +441,7 @@ function setupScratch(key, onRevealed) {
         if (pixels[(y * canvas.width + x) * 4 + 3] < 110) transparent++;
       }
     }
-    if (transparent / total >= .38) reveal(); else status.textContent = 'Continue de gratter la zone centrale du ticket…';
+    if (transparent / total >= .90) reveal(); else status.textContent = 'Continue de gratter la zone centrale du ticket…';
   }
   canvas.addEventListener('pointerdown', e => {
     if (finished) return;
@@ -466,10 +479,10 @@ async function gift(key) {
           <div class="scratch-prize scratch-prize-balloon-zone"><span>TON DESTINATAIRE SECRET</span><strong>${esc(d.recipient)}</strong><span class="scratch-sparkles" aria-hidden="true">✦ ✦ ✦</span></div>
           ${alreadyRevealed ? '' : '<canvas id="scratchCanvas" class="scratch-cover" aria-label="Ticket à gratter : glisse ton doigt ou ta souris pour révéler le prénom"></canvas>'}
         </div>
-        <p class="small center" id="scratchStatus" role="status">${alreadyRevealed ? '✓ Ticket déjà découvert : aucun nouveau grattage nécessaire.' : 'Glisse ton doigt ou ta souris sur les ballons.'}</p>
+        ${alreadyRevealed ? '' : '<p class="small center" id="scratchStatus" role="status">Glisse ton doigt ou ta souris sur la zone centrale.</p>'}
         ${alreadyRevealed ? '' : '<button type="button" class="scratch-access" id="revealWithoutScratch">Révéler sans gratter</button>'}
         <div id="recipientWishes" class="wishlist-panel" ${alreadyRevealed ? '' : 'hidden'}><h3>🎁 Les envies de ${esc(d.recipient)}</h3><p id="recipientWishText" class="wish-text">${esc(d.recipientWishlist || 'Aucune idée de cadeau renseignée pour le moment.')}</p></div>`
-      : '<div class="notice center">Le tirage n’a pas encore eu lieu. Reviens bientôt avec ce même lien.</div>'}
+      : '<div class="notice center waiting-notice"><div class="waiting-icon" aria-hidden="true">⏳</div><div>Le tirage n’a pas encore eu lieu.<br>Reviens bientôt avec ce même lien.</div></div>'}
       <div class="detail"><span>Budget maximum</span><strong>${money(d.budget)}</strong></div>
       <div class="detail"><span>Date de remise</span><strong>${esc(formatDate(d.date))}</strong></div>
       <div class="wishlist-panel"><h3>✏️ Ma liste de souhaits</h3><p class="small">Note des idées de cadeaux. La personne qui doit t’offrir un cadeau pourra les consulter avec son propre lien.</p>

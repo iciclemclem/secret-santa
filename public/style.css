@@ -223,3 +223,33 @@ body[data-theme="nuit"] .scratch-prize-balloon-zone{background:rgba(249,244,238,
   .preview-panel .section-heading .small{display:block;margin-top:4px}
   .poster-ticket{max-width:100%}
 }
+
+/* V5.3 : ticket recentré, feux d'artifice et arrière-plan hivernal enrichi. */
+body::before{height:26vh;opacity:.24;background:
+  radial-gradient(ellipse at 6% 100%, rgba(35,73,55,.22) 0 10%, transparent 10.4%),
+  radial-gradient(ellipse at 14% 100%, rgba(35,73,55,.16) 0 8%, transparent 8.4%),
+  radial-gradient(ellipse at 23% 100%, rgba(35,73,55,.2) 0 11%, transparent 11.5%),
+  radial-gradient(ellipse at 33% 100%, rgba(35,73,55,.14) 0 8%, transparent 8.5%),
+  radial-gradient(ellipse at 44% 100%, rgba(35,73,55,.21) 0 12%, transparent 12.5%),
+  radial-gradient(ellipse at 56% 100%, rgba(35,73,55,.14) 0 8%, transparent 8.5%),
+  radial-gradient(ellipse at 67% 100%, rgba(35,73,55,.2) 0 11%, transparent 11.5%),
+  radial-gradient(ellipse at 79% 100%, rgba(35,73,55,.16) 0 9%, transparent 9.4%),
+  radial-gradient(ellipse at 90% 100%, rgba(35,73,55,.22) 0 12%, transparent 12.4%),
+  linear-gradient(to top, rgba(255,255,255,.82), rgba(255,255,255,0));filter:blur(2px)}
+body::after{bottom:8vh;height:20vh;opacity:.14;background:
+  linear-gradient(135deg, transparent 41%, rgba(28,64,47,.95) 41.6%, transparent 42.2%) 0 100%/52px 100% repeat-x,
+  linear-gradient(225deg, transparent 41%, rgba(28,64,47,.95) 41.6%, transparent 42.2%) 26px 100%/52px 100% repeat-x,
+  linear-gradient(to top, rgba(255,255,255,.18), transparent 78%);filter:blur(1px)}
+.poster-ticket{position:relative}
+.scratch-prize-balloon-zone{inset:auto;left:12.5%;right:12.5%;top:33%;height:29%;min-height:0;display:flex;justify-content:center;align-items:center;padding:14px 16px 14px}
+.scratch-prize-balloon-zone strong{line-height:1.05}
+.waiting-notice{display:grid;gap:10px;justify-items:center;padding:18px 16px;text-align:center}
+.waiting-icon{font-size:38px;line-height:1;filter:drop-shadow(0 4px 10px rgba(42,52,46,.12))}
+.fireworks-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:101}
+.firework-burst{position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#fff6c7 0%, #f2c14a 45%, rgba(242,193,74,.15) 60%, transparent 61%);transform:translate(-50%,-50%) scale(.2);opacity:0;animation:firework-burst 1.4s ease-out forwards}
+.firework-burst::before,.firework-burst::after{content:"";position:absolute;inset:-56px;border-radius:50%;background:repeating-conic-gradient(from 0deg, rgba(255,255,255,0) 0 8deg, rgba(242,193,74,.95) 8deg 14deg, rgba(255,255,255,0) 14deg 24deg)}
+.firework-burst::after{inset:-34px;background:repeating-conic-gradient(from 10deg, rgba(255,255,255,0) 0 10deg, rgba(172,214,255,.88) 10deg 16deg, rgba(255,255,255,0) 16deg 26deg)}
+@keyframes firework-burst{0%{opacity:0;transform:translate(-50%,-50%) scale(.15)}18%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+body[data-theme="nuit"] .firework-burst{background:radial-gradient(circle,#fff7d6 0%, #ffd36a 45%, rgba(255,211,106,.1) 60%, transparent 61%)}
+@media(max-width:620px){.scratch-prize-balloon-zone{left:11.5%;right:11.5%;top:32.4%;height:29.5%;padding:12px 12px 13px}}
+@media(prefers-reduced-motion:reduce){.fireworks-layer{display:none}}
