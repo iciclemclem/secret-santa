@@ -394,25 +394,21 @@ function setupScratch(key, onRevealed, revealEmoji, revealStyle) {
     ctx.fillStyle = metallic; ctx.fillRect(0, 0, w, h);
     for (let x = -h; x < w + h; x += 16) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + h, h); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,.24)'; ctx.stroke(); }
   }
+  const scratchZone = {
+    x: w * 0.065,
+    y: h * 0.285,
+    width: w * 0.83,
+    height: h * 0.445,
+    radius: 20
+  };
   function drawCoverVisual() {
     ctx.clearRect(0, 0, w, h);
     const img = new Image();
     img.onload = () => {
-      const scale = Math.max(w / img.width, h / img.height);
+      const scale = Math.min(w / img.width, h / img.height);
       const sw = img.width * scale, sh = img.height * scale;
       const dx = (w - sw) / 2, dy = (h - sh) / 2;
       ctx.drawImage(img, dx, dy, sw, sh);
-      ctx.fillStyle = 'rgba(7, 22, 27, .18)';
-      ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = 'rgba(255,255,255,.92)';
-      roundRect(ctx, w * .08, h * .06, w * .44, h * .08, 18);
-      ctx.fill();
-      ctx.fillStyle = '#1e4b39';
-      ctx.textAlign = 'center';
-      ctx.font = '700 14px system-ui,sans-serif';
-      ctx.fillText('GRATTE LES BALLONS', w * .30, h * .105);
-      ctx.font = '12px system-ui,sans-serif';
-      ctx.fillText('pour découvrir le prénom', w * .30, h * .145);
     };
     img.onerror = drawFallback;
     img.src = '/ticket-avant-decouverte.png';
@@ -420,19 +416,45 @@ function setupScratch(key, onRevealed, revealEmoji, revealStyle) {
   drawCoverVisual();
 
   function point(e) { const r = canvas.getBoundingClientRect(); return { x:(e.clientX - r.left) * w / r.width, y:(e.clientY - r.top) * h / r.height }; }
+  function isInScratchZone(p) {
+    return p.x >= scratchZone.x && p.x <= scratchZone.x + scratchZone.width && p.y >= scratchZone.y && p.y <= scratchZone.y + scratchZone.height;
+  }
   function scratch(a, b) {
+    ctx.save();
+    roundRect(ctx, scratchZone.x, scratchZone.y, scratchZone.width, scratchZone.height, scratchZone.radius);
+    ctx.clip();
     ctx.globalCompositeOperation = 'destination-out'; ctx.strokeStyle = '#000'; ctx.lineWidth = 42;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    ctx.beginPath(); ctx.arc(b.x, b.y, 21, 0, Math.PI * 2); ctx.fill(); ctx.globalCompositeOperation = 'source-over';
+    ctx.beginPath(); ctx.arc(b.x, b.y, 21, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
   }
   function check() {
     if (finished) return;
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data; let transparent = 0, total = 0;
-    for (let y = 0; y < canvas.height; y += 14) for (let x = 0; x < canvas.width; x += 14) { total++; if (pixels[(y * canvas.width + x) * 4 + 3] < 110) transparent++; }
-    if (transparent / total >= .38) reveal(); else status.textContent = 'Continue de gratter les ballons pour découvrir le prénom…';
+    const step = 14;
+    const startX = Math.round(scratchZone.x * canvas.width / w);
+    const endX = Math.round((scratchZone.x + scratchZone.width) * canvas.width / w);
+    const startY = Math.round(scratchZone.y * canvas.height / h);
+    const endY = Math.round((scratchZone.y + scratchZone.height) * canvas.height / h);
+    for (let y = startY; y < endY; y += step) {
+      for (let x = startX; x < endX; x += step) {
+        total++;
+        if (pixels[(y * canvas.width + x) * 4 + 3] < 110) transparent++;
+      }
+    }
+    if (transparent / total >= .38) reveal(); else status.textContent = 'Continue de gratter pour découvrir le prénom…';
   }
-  canvas.addEventListener('pointerdown', e => { if (finished) return; e.preventDefault(); active = true; last = point(e); canvas.setPointerCapture(e.pointerId); scratch(last, last); });
-  canvas.addEventListener('pointermove', e => { if (!active || finished) return; e.preventDefault(); const p = point(e); scratch(last, p); last = p; moves++; if (moves % 12 === 0) check(); });
+  canvas.addEventListener('pointerdown', e => {
+    if (finished) return;
+    const p = point(e);
+    if (!isInScratchZone(p)) return;
+    e.preventDefault(); active = true; last = p; canvas.setPointerCapture(e.pointerId); scratch(last, last);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!active || finished) return;
+    e.preventDefault(); const p = point(e); scratch(last, p); last = p; moves++; if (moves % 12 === 0) check();
+  });
   const stop = () => { if (active) { active = false; last = null; check(); } };
   canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop); canvas.addEventListener('lostpointercapture', stop);
 }
