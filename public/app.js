@@ -82,6 +82,19 @@ function snowfall() {
 }
 snowfall();
 
+// Les exclusions sont stockées sous forme de couples orientés [donneur, destinataire].
+function exclusionGroups(pairs) {
+  const keys = new Set(pairs.map(([a,b]) => a + ':' + b));
+  const groups = [];
+  for (const key of keys) {
+    const [a,b] = key.split(':').map(Number);
+    const reverse = b + ':' + a;
+    const both = keys.has(reverse);
+    if (both && a > b) continue;
+    groups.push({a,b,both});
+  }
+  return groups;
+}
 function home() {
   let names = [];
   let exclusions = new Set();
@@ -94,8 +107,9 @@ function home() {
       <label for="name">Participants</label><div id="names"></div>
       <div class="add"><input id="name" maxlength="60" placeholder="Prénom d'un ami" autocomplete="off"><button id="add" class="secondary" type="button">+ Ajouter</button></div>
       <p class="small">2 à 50 personnes. Les liens privés seront créés dès la validation.</p>
-      <section id="exclusionSettings" class="exclusion-settings"><h3>Exclusions entre participants</h3><p class="small">Choisis deux personnes : elles ne pourront pas se tirer l'une l'autre.</p>
+      <section id="exclusionSettings" class="exclusion-settings"><h3>Exclusions entre participants</h3><p class="small">Choisis deux personnes et le sens de l’exclusion. Dans un seul sens, le participant 1 ne peut pas tirer le participant 2, mais l’inverse reste possible.</p>
         <div class="exclusion-picker"><div><label for="exclusionA">Participant 1</label><select id="exclusionA"></select></div><div><label for="exclusionB">Participant 2</label><select id="exclusionB"></select></div></div>
+        <label for="exclusionDirection">Sens de l’exclusion</label><select id="exclusionDirection"><option value="both">Dans les deux sens (1 ↔ 2)</option><option value="one">Un seul sens (1 → 2)</option></select>
         <button type="button" class="secondary add-exclusion" id="addExclusion">+ Ajouter l'exclusion</button>
         <div id="exclusionPairs" class="exclusion-list" aria-live="polite"></div>
       </section>
@@ -134,12 +148,11 @@ function home() {
     if (!exclusions.size) {
       const hint = document.createElement('p'); hint.className = 'small'; hint.textContent = 'Aucune exclusion définie.'; wrap.appendChild(hint); return;
     }
-    [...exclusions].forEach(pair => {
-      const [a, b] = pair.split(':').map(Number);
+    exclusionGroups([...exclusions].map(pair => pair.split(':').map(Number))).forEach(({a,b,both}) => {
       const row = document.createElement('div'); row.className = 'exclusion-item';
-      const label = document.createElement('span'); label.textContent = '🚫 ' + names[a] + ' ↔ ' + names[b];
+      const label = document.createElement('span'); label.textContent = names[a] + (both ? ' ↔ ' : ' → ') + names[b] + (both ? ' (réciproque)' : ' (sens unique)');
       const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'danger'; remove.textContent = 'Retirer';
-      remove.onclick = () => { exclusions.delete(pair); renderExclusions(); };
+      remove.onclick = () => { exclusions.delete(a + ':' + b); if (both) exclusions.delete(b + ':' + a); renderExclusions(); };
       row.append(label, remove); wrap.appendChild(row);
     });
   }
@@ -147,9 +160,11 @@ function home() {
     const a = document.getElementById('exclusionA').value, b = document.getElementById('exclusionB').value;
     if (a === '' || b === '') return message('Sélectionne deux participants pour créer une exclusion.');
     if (a === b) return message('Choisis deux participants différents.');
-    const [i, j] = [Number(a), Number(b)].sort((x, y) => x - y), pair = i + ':' + j;
-    if (exclusions.has(pair)) return message('Cette exclusion existe déjà.');
-    exclusions.add(pair); message(''); renderExclusions();
+    const pair = a + ':' + b, reverse = b + ':' + a;
+    const both = document.getElementById('exclusionDirection').value === 'both';
+    if (exclusions.has(pair) && (!both || exclusions.has(reverse))) return message('Cette exclusion existe déjà.');
+    exclusions.add(pair); if (both) exclusions.add(reverse);
+    message(''); renderExclusions();
     document.getElementById('exclusionA').value = ''; document.getElementById('exclusionB').value = '';
   };
   function add() {
@@ -171,7 +186,7 @@ function home() {
         date:document.getElementById('date').value,
         names,
         giftTheme:document.getElementById('giftTheme').value,
-        exclusions:[...exclusions].flatMap(k => { const [i, j] = k.split(':').map(Number); return [[i, j], [j, i]]; })
+        exclusions:[...exclusions].map(k => k.split(':').map(Number))
       })});
       location.assign(data.organizerPath);
     } catch (err) { fail(err); btn.disabled = false; }
@@ -212,12 +227,13 @@ async function organize(key) {
     const url = '/api/organize/' + encodeURIComponent(key);
     const data = await request(url);
     applyTheme(data.theme);
+    const groups = exclusionGroups(data.exclusions || []);
     card(`<h2>${esc(data.title)}</h2>
       <p class="hint">Espace organisateur · ${data.participants.length} participants</p>
       <div class="detail"><span>Budget</span><strong>${money(data.budget)}</strong></div>
       <div class="detail"><span>Remise des cadeaux</span><strong>${esc(formatDate(data.date))}</strong></div>
       <div class="detail"><span>Thème des cadeaux</span><strong>${esc(data.giftTheme || 'Libre')}</strong></div>
-      <div class="notice">Exclusions : ${Math.floor((data.exclusions || []).length / 2)} paire(s).</div>
+      <div class="notice">Exclusions : ${groups.filter(g => !g.both).length} à sens unique · ${groups.filter(g => g.both).length} réciproque(s).</div>
       <div class="notice">🔐 <b>Conserve cette adresse organisateur en privé.</b> Elle donne accès aux liens individuels. Tu peux partager les liens avant ou après le tirage, avec le même message WhatsApp personnalisé.</div>
       ${data.drawn ? `<section class="progress-panel" aria-label="Suivi des découvertes">
         <div class="progress-head"><div><div class="progress-label">Suivi des découvertes</div><div class="progress-numbers"><strong id="revealedCount">0</strong><span> / ${data.participants.length} tickets découverts</span></div></div><button id="refresh" type="button" class="outline small-button">↻ Actualiser</button></div>
@@ -411,7 +427,7 @@ function setupScratch(key, onRevealed) {
     for(let i=3;i<rgba.length;i+=4)if(rgba[i]>0)remaining++;
     const percent=Math.floor(100*(W*H-remaining)/(W*H));
     status.textContent='Zone grattée : '+percent+' %';
-    if(remaining===0)reveal();
+    if(percent>=95)reveal();
   }
   canvas.addEventListener('pointerdown',e=>{if(!ready||finished||pointer!==null)return;e.preventDefault();pointer=e.pointerId;canvas.setPointerCapture(pointer);last=point(e);loadRecipient();scratch(last,last);check();});
   canvas.addEventListener('pointermove',e=>{if(finished||pointer!==e.pointerId)return;e.preventDefault();const p=point(e);loadRecipient();scratch(last,p);last=p;check();});
