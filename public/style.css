@@ -297,3 +297,29 @@ body[data-theme="nuit"] .card{box-shadow:0 20px 58px #07142745;border:1px solid 
 @keyframes scratch-dust{to{transform:translate(var(--dx),var(--dy)) rotate(90deg);opacity:0}}
 .v6-celebration{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:103}
 @media(prefers-reduced-motion:reduce){.snowfall,.scratch-dust,.v6-celebration{display:none!important}}
+
+/* V6.1 — portraits facultatifs et recadrage circulaire. */
+.person .participant-identity{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.participant-identity>span:last-child{overflow-wrap:anywhere;min-width:0}
+.participant-avatar{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:cover;border:1px solid #d3b976;background:#e7eef2;color:#385363;display:grid;place-items:center;font-weight:700}
+.participant-actions{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+.participant-actions button{font-size:12px}
+.portrait-dialog{width:min(440px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;border:1px solid #c5d6e3;border-radius:20px;padding:20px;color:#183b36;background:#f9fafc;box-shadow:0 20px 70px #07142788}
+.portrait-dialog::backdrop{background:rgba(5,18,36,.76)}
+.portrait-dialog h3{font-family:Georgia,serif;font-size:25px;margin:0 0 5px}
+.portrait-dialog .small{color:#455b63;line-height:1.45;margin:7px 0}
+.crop-person{font-weight:700;overflow-wrap:anywhere}
+.crop-viewport{display:grid;place-items:center;margin:10px auto;width:min(100%,270px,40vh);aspect-ratio:1;border-radius:12px;background:#e2eaf0}
+.crop-viewport canvas{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:50%;border:2px solid #c6a45e;background:#dbe5ee;touch-action:none;cursor:grab}
+.crop-viewport canvas:active{cursor:grabbing}
+.crop-viewport canvas:focus-visible{outline:2px solid #526d8a;outline-offset:3px}
+.portrait-dialog label{margin-top:10px}
+.portrait-dialog input[type="range"]{appearance:auto;-webkit-appearance:auto;accent-color:#315c52;padding:0;margin:6px 0 12px;background:transparent;border:0}
+.crop-actions{display:flex;gap:8px;margin-top:8px}
+.crop-actions button{flex:1;font-size:13px;padding:9px 8px}
+.poster-ticket .scratch-prize-balloon-zone.has-photo{gap:clamp(2px,.7vw,5px);padding:4px}
+.poster-ticket .recipient-photo{display:block;height:44%;width:auto;max-width:42%;aspect-ratio:1;object-fit:cover;flex:0 0 auto;border:2px solid #c9a55a;border-radius:50%;background:#f2e5ce}
+.poster-ticket .scratch-prize-balloon-zone.has-photo span:first-child{font-size:clamp(7px,1.9vw,10px);letter-spacing:.7px;line-height:1.05}
+.poster-ticket .scratch-prize-balloon-zone.has-photo strong{font-size:clamp(14px,4.8vw,28px);line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.poster-ticket .scratch-prize-balloon-zone.has-photo .scratch-sparkles{font-size:clamp(8px,2.4vw,12px);letter-spacing:3px;line-height:1}
+@media(max-width:430px){.person{align-items:flex-start;flex-wrap:wrap;gap:6px}.person .participant-identity{flex-basis:100%}.participant-actions{width:100%}}
