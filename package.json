@@ -1,8 +1,8 @@
 {
   "name": "secret-santa-prive",
-  "version": "5.6.0",
+  "version": "6.0.0",
   "private": true,
-  "description": "Secret Santa V5.6 : exclusions orientées et révélation à 95 %",
+  "description": "Secret Santa V6 : nuit hivernale et effets de révélation",
   "scripts": {
     "start": "node server.js",
     "test": "node --test"
