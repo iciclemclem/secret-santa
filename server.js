@@ -8,9 +8,12 @@ const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || 3000);
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data'));
 const DATA_FILE = path.join(DATA_DIR, 'events.json');
+const PHOTO_DIR = path.join(DATA_DIR, 'photos');
+const MAX_PHOTO_BYTES = 100_000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
+fs.mkdirSync(PHOTO_DIR, { recursive: true, mode: 0o700 });
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '{}', { mode: 0o600, flag: 'wx' });
 let events = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 
@@ -26,16 +29,49 @@ function send(res, status, obj) {
   res.end(JSON.stringify(obj));
 }
 function error(res, status, message) { send(res, status, { error: message }); }
-function readJSON(req) {
+function readJSON(req, limit = 40_000) {
   return new Promise((resolve, reject) => {
-    let body = '';
+    const chunks = []; let size = 0, tooLarge = false;
     req.on('data', chunk => {
-      body += chunk;
-      if (body.length > 40_000) { reject(new Error('Requête trop volumineuse.')); req.destroy(); }
+      size += chunk.length;
+      if (size > limit) { tooLarge = true; chunks.length = 0; }
+      else if (!tooLarge) chunks.push(chunk);
     });
-    req.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(new Error('JSON invalide.')); } });
+    req.on('end', () => {
+      if (tooLarge) return reject(new Error('Requête trop volumineuse.'));
+      try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { reject(new Error('JSON invalide.')); }
+    });
     req.on('error', reject);
+    req.on('aborted', () => reject(new Error('Requête interrompue.')));
   });
+}
+// Le navigateur exporte uniquement le carré JPEG recadré. Pas de SVG ni de fichier original.
+function decodePhoto(value) {
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string' || value.length > 133_360 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(value)) throw Error('Photo invalide.');
+  const bytes = Buffer.from(value.slice(23), 'base64');
+  if (bytes.length < 20 || bytes.length > MAX_PHOTO_BYTES || bytes[0] !== 255 || bytes[1] !== 216 || bytes[bytes.length-2] !== 255 || bytes[bytes.length-1] !== 217) throw Error('Photo invalide.');
+  // Vérification des dimensions JPEG dans le segment SOF.
+  let i=2, square=false;
+  while(i+4<bytes.length && bytes[i]===255){
+    while(bytes[i]===255)i++;
+    const marker=bytes[i++];
+    if(marker===218||marker===217)break;
+    const len=bytes.readUInt16BE(i);
+    if(len<2||i+len>bytes.length)break;
+    if([192,193,194].includes(marker)){
+      if(len<8||bytes.readUInt16BE(i+3)!==512||bytes.readUInt16BE(i+5)!==512)throw Error('La photo doit être recadrée en 512 × 512.');
+      square=true;break;
+    }
+    i+=len;
+  }
+  if(!square)throw Error('Photo JPEG invalide.');
+  return bytes;
+}
+function recipientPhoto(p) {
+  if (!p || typeof p.photoId !== 'string' || !/^[a-f0-9-]{36}$/.test(p.photoId)) return null;
+  try { const bytes=fs.readFileSync(path.join(PHOTO_DIR,p.photoId+'.jpg')); return 'data:image/jpeg;base64,'+bytes.toString('base64'); }
+  catch { return null; } // Une photo manquante ne bloque jamais la révélation du nom.
 }
 function randInt(max) { return crypto.randomInt(max); }
 function assignment(n, exclusions = []) {
@@ -159,7 +195,8 @@ const server = http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   try {
     if (req.method === 'POST' && pathname === '/api/events') {
-      const body = await readJSON(req);
+      const body = await readJSON(req, 7_000_000);
+      if (!body || typeof body !== 'object') return error(res, 400, 'Requête invalide.');
       const title = typeof body.title === 'string' ? body.title.trim() : '';
       const budget = Number(body.budget);
       const date = typeof body.date === 'string' ? body.date : '';
@@ -176,9 +213,23 @@ const server = http.createServer(async (req, res) => {
       if (!Array.isArray(exclusions) || exclusions.length > 2500 || exclusions.some(p => !Array.isArray(p) || p.length !== 2 || p.some(v => !Number.isInteger(v) || v < 0 || v >= names.length))) return error(res, 400, 'Exclusions invalides.');
       const uniqueExclusions = [...new Map(exclusions.map(p => [p.join(':'), p])).values()];
       if (!assignment(names.length, uniqueExclusions)) return error(res, 400, 'Ces exclusions rendent le tirage impossible. Assouplis certaines règles.');
+      let photos;
+      try {
+        if (body.photos !== undefined && (!Array.isArray(body.photos) || body.photos.length !== names.length)) throw Error('Liste des photos invalide.');
+        photos = (body.photos || names.map(() => null)).map(decodePhoto);
+      } catch (err) { return error(res, 400, err.message); }
       const key = id();
       const organizerToken = token();
       const identities = pickIdentities(names.length);
+      const storedPhotos = [];
+      try {
+      const photoIds = photos.map(bytes => {
+        if (!bytes) return null;
+        const photoId = id(), filename = path.join(PHOTO_DIR, photoId + '.jpg');
+        storedPhotos.push(filename);
+        fs.writeFileSync(filename, bytes, { mode: 0o600, flag: 'wx' });
+        return photoId;
+      });
       events[key] = {
         title,
         budget,
@@ -189,9 +240,14 @@ const server = http.createServer(async (req, res) => {
         organizerToken,
         drawn: false,
         message: DEFAULT_MESSAGE,
-        participants: names.map((name, i) => ({ name, token: token(), recipient: null, wishlist: '', revealedAt: null, emoji: identities[i][0] }))
+        participants: names.map((name, i) => ({ name, token: token(), recipient: null, wishlist: '', revealedAt: null, emoji: identities[i][0], ...(photoIds[i] ? {photoId:photoIds[i]} : {}) }))
       };
       save();
+      } catch (err) {
+        delete events[key];
+        for (const filename of storedPhotos) try { fs.unlinkSync(filename); } catch {}
+        throw err;
+      }
       return send(res, 201, { organizerPath: '/organize/' + organizerToken });
     }
 
@@ -229,13 +285,14 @@ const server = http.createServer(async (req, res) => {
         // Le premier geste charge uniquement le prénom, sans enregistrer la découverte.
         if (req.method === 'GET' && giftMatch[2] === '/recipient') {
           if (!e.drawn) return error(res, 409, 'Le tirage n’a pas encore eu lieu.');
-          return send(res, 200, { recipient: e.participants[p.recipient].name });
+          const recipient = e.participants[p.recipient];
+          return send(res, 200, { recipient: recipient.name, recipientPhoto: recipientPhoto(recipient) });
         }
         if (req.method === 'POST' && giftMatch[2] === '/reveal') {
           if (!e.drawn) return error(res, 409, 'Le tirage n’a pas encore eu lieu.');
           if (!revelationDate(p)) { p.revealedAt = new Date().toISOString(); save(); }
           const recipient = e.participants[p.recipient];
-          return send(res, 200, { revealedAt: revelationDate(p), recipient: recipient.name, recipientWishlist: wishlistValue(recipient) });
+          return send(res, 200, { revealedAt: revelationDate(p), recipient: recipient.name, recipientPhoto: recipientPhoto(recipient), recipientWishlist: wishlistValue(recipient) });
         }
         if (giftMatch[2] || (req.method !== 'GET' && req.method !== 'PATCH')) return error(res, 405, 'Méthode non autorisée.');
         if (req.method === 'PATCH') {
@@ -259,6 +316,7 @@ const server = http.createServer(async (req, res) => {
           revealedAt: revelationDate(p),
           wishlist: wishlistValue(p),
           recipient: recipientParticipant ? recipientParticipant.name : null,
+          recipientPhoto: recipientPhoto(recipientParticipant),
           recipientWishlist: recipientParticipant ? wishlistValue(recipientParticipant) : '',
           recipientEmoji: recipientParticipant ? participantIdentity(recipientParticipant, recipientIndex).emoji : null,
           recipientEmojiStyle: recipientParticipant ? participantIdentity(recipientParticipant, recipientIndex).emojiStyle : null
@@ -273,7 +331,8 @@ const server = http.createServer(async (req, res) => {
     return error(res, 404, 'Page introuvable.');
   } catch (err) {
     console.error(err);
-    return error(res, err.message === 'JSON invalide.' ? 400 : 500, err.message === 'JSON invalide.' ? err.message : 'Une erreur est survenue.');
+    const status = err.message === 'Requête trop volumineuse.' ? 413 : err.message === 'JSON invalide.' ? 400 : 500;
+    return error(res, status, status === 500 ? 'Une erreur est survenue.' : err.message);
   }
 });
 
