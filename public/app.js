@@ -525,6 +525,7 @@ function setupScratch(key, onRevealed) {
   async function reveal() {
     if (finished) return;
     finished=true; pointer=null; skip.disabled=true;
+    status.hidden=false;
     status.textContent='Découverte en cours…';
     try {
       const result=await request(giftUrl+'/reveal',{method:'POST'});
@@ -535,7 +536,7 @@ function setupScratch(key, onRevealed) {
       status.hidden=true; skip.hidden=true; celebrate();
       setTimeout(()=>{canvas.hidden=true;},750);
     } catch(err) {
-      finished=false; skip.disabled=false; status.textContent='La découverte n’a pas été enregistrée. Réessaie : '+err.message;
+      finished=false; skip.disabled=false; status.hidden=false; status.textContent='La découverte n’a pas été enregistrée. Réessaie : '+err.message;
       skip.textContent='Réessayer la révélation';
     }
   }
@@ -546,9 +547,9 @@ function setupScratch(key, onRevealed) {
     ctx.fillStyle='#d9d7d0';ctx.fillRect(0,0,W,H);
     ctx.drawImage(img,img.naturalWidth*.12,img.naturalHeight*.31,img.naturalWidth*.76,img.naturalHeight*.31,0,0,W,H);
     ready=true;surface.classList.add('scratch-ready');
-    status.textContent='Zone grattée : 0 %';
+    status.textContent='';status.hidden=true;
   }
-  function failed(){if(!ready&&!finished)status.textContent='Image indisponible. Tu peux révéler sans gratter ou actualiser la page.';}
+  function failed(){if(!ready&&!finished){status.hidden=false;status.textContent='Image indisponible. Tu peux révéler sans gratter ou actualiser la page.';}}
   img.addEventListener('load',activate,{once:true});img.addEventListener('error',failed,{once:true});
   if(img.complete){if(img.naturalWidth)activate();else failed();}
   if(!ctx)failed();
@@ -563,7 +564,6 @@ function setupScratch(key, onRevealed) {
     // Tous les pixels sont contrôlés, pas un échantillon ni un pourcentage arrondi.
     for(let i=3;i<rgba.length;i+=4)if(rgba[i]>0)remaining++;
     const percent=Math.floor(100*(W*H-remaining)/(W*H));
-    status.textContent='Zone grattée : '+percent+' %';
     if(percent>=95)reveal();
     else if(Math.floor(percent/25)>lastMilestone){lastMilestone=Math.floor(percent/25);vibrate(18);}
   }
