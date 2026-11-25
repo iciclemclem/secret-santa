@@ -197,7 +197,12 @@ async function editPortrait(file, name, onSave) {
   }catch(e){if(active)status.textContent=e.message||'Impossible de charger la photo.';}
 }
 function setRecipientIdentity(result) {
-  document.getElementById('recipientName').textContent=result.recipient||'';
+  const name=document.getElementById('recipientName');
+  name.textContent=result.recipient||'';
+  const length=Array.from(name.textContent).length;
+  name.classList.toggle('name-medium',length>12);
+  name.classList.toggle('name-long',length>24);
+  name.classList.toggle('name-extra-long',length>42);
   const photo=document.getElementById('recipientPhoto');
   if(!photo)return Promise.resolve();
   const prize=photo.parentElement;
@@ -524,7 +529,9 @@ function setupScratch(key, onRevealed) {
     try {
       const result=await request(giftUrl+'/reveal',{method:'POST'});
       await onRevealed(result);
-      surface.classList.add('is-revealed');
+      surface.classList.add('is-revealed','reveal-pop');
+      const intro=document.getElementById('ticketIntro');
+      if(intro)intro.textContent='Tu as découvert ton destinataire !';
       status.hidden=true; skip.hidden=true; celebrate();
       setTimeout(()=>{canvas.hidden=true;},750);
     } catch(err) {
@@ -574,10 +581,10 @@ async function gift(key) {
     card(`<h2 class="center">Bonjour ${esc(d.giver)} !</h2>
       <p class="center muted">${esc(d.title)}</p>
       <div class="wishlist-panel gift-theme-panel"><h3>Thème des cadeaux</h3><p class="wish-text">${esc(d.giftTheme || 'Libre – laisse parler ton imagination !')}</p></div>
-      ${d.drawn ? `<p class="center muted ticket-intro">${alreadyRevealed ? 'Tu as déjà découvert ton destinataire.' : 'Gratte la zone centrale du ticket pour découvrir ton destinataire.'}</p>
+      ${d.drawn ? `<p id="ticketIntro" class="center muted ticket-intro">${alreadyRevealed ? 'Tu as déjà découvert ton destinataire.' : 'Gratte la zone centrale du ticket pour découvrir ton destinataire.'}</p>
         <div class="scratch-ticket poster-ticket ${alreadyRevealed ? 'is-revealed' : ''}" id="scratchTicket">
           <img src="/ticket-avant-decouverte.png" alt="Ticket à gratter de Noël" class="scratch-poster">
-          <div class="scratch-prize scratch-prize-balloon-zone"><span>TON DESTINATAIRE SECRET</span><img id="recipientPhoto" class="recipient-photo" alt="" hidden><strong id="recipientName">${alreadyRevealed?esc(d.recipient):''}</strong><span class="scratch-sparkles" aria-hidden="true">✦ ✦ ✦</span></div>
+          <div class="scratch-prize scratch-prize-balloon-zone"><img id="recipientPhoto" class="recipient-photo" alt="" hidden><div class="recipient-info"><span class="recipient-label">TON DESTINATAIRE SECRET</span><strong id="recipientName">${alreadyRevealed?esc(d.recipient):''}</strong><span class="scratch-sparkles" aria-hidden="true">✦ ✦ ✦</span></div></div>
           ${alreadyRevealed ? '' : '<canvas id="scratchCanvas" class="scratch-cover" aria-label="Ticket à gratter : glisse ton doigt ou ta souris pour révéler le prénom"></canvas>'}
         </div>
         ${alreadyRevealed ? '' : '<p class="small center" id="scratchStatus" role="status">Chargement du ticket…</p>'}
