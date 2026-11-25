@@ -323,3 +323,104 @@ body[data-theme="nuit"] .card{box-shadow:0 20px 58px #07142745;border:1px solid 
 .poster-ticket .scratch-prize-balloon-zone.has-photo strong{font-size:clamp(14px,4.8vw,28px);line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .poster-ticket .scratch-prize-balloon-zone.has-photo .scratch-sparkles{font-size:clamp(8px,2.4vw,12px);letter-spacing:3px;line-height:1}
 @media(max-width:430px){.person{align-items:flex-start;flex-wrap:wrap;gap:6px}.person .participant-identity{flex-basis:100%}.participant-actions{width:100%}}
+
+/* V6.2 — le portrait occupe presque toute la hauteur de la zone à gratter. */
+body[data-theme="nuit"] .poster-ticket .scratch-prize-balloon-zone {
+  background:#fff7eb;
+}
+.poster-ticket .scratch-prize-balloon-zone {
+  container-type:size;
+  background:#fff7eb;
+  padding:clamp(4px,1.6vw,9px);
+  gap:0;
+}
+.poster-ticket .scratch-prize-balloon-zone.has-photo {
+  display:grid;
+  grid-template-columns:minmax(0,45fr) minmax(0,55fr);
+  align-items:center;
+  justify-items:center;
+  gap:clamp(4px,1.7vw,10px);
+  padding:clamp(4px,1.6vw,9px);
+}
+.poster-ticket .recipient-photo {
+  width:100%;
+  width:min(100%,88cqh);
+  height:auto;
+  max-width:100%;
+  max-height:none;
+  aspect-ratio:1;
+  object-fit:cover;
+  border:2px solid #c9a55a;
+  box-shadow:0 2px 8px #8d66301c;
+  border-radius:50%;
+}
+.poster-ticket .recipient-info {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  width:100%;
+  min-width:0;
+  gap:clamp(3px,1.2vw,7px);
+}
+.poster-ticket .recipient-info .recipient-label,
+.poster-ticket .scratch-prize-balloon-zone.has-photo .recipient-info .recipient-label {
+  font-size:clamp(8px,2.4vw,12px);
+  font-size:clamp(7px,4.4cqw,12px);
+  letter-spacing:.7px;
+  font-weight:800;
+  line-height:1.22;
+  overflow-wrap:anywhere;
+  color:#70434b;
+}
+.poster-ticket .recipient-info strong,
+.poster-ticket .scratch-prize-balloon-zone.has-photo .recipient-info strong {
+  display:block;
+  -webkit-line-clamp:unset;
+  overflow:visible;
+  overflow-wrap:anywhere;
+  max-width:100%;
+  font-size:clamp(19px,7vw,38px);
+  font-size:clamp(16px,12cqw,38px);
+  line-height:1.05;
+  color:#813f4b;
+  text-shadow:none;
+}
+.poster-ticket .scratch-prize-balloon-zone.has-photo .recipient-info strong {
+  font-size:clamp(17px,6.3vw,32px);
+  font-size:clamp(14px,10cqw,32px);
+}
+.poster-ticket .scratch-prize-balloon-zone .recipient-info strong.name-medium {
+  font-size:clamp(14px,7.5cqw,26px);
+}
+.poster-ticket .scratch-prize-balloon-zone.has-photo .recipient-info strong.name-medium {
+  font-size:clamp(12px,6.8cqw,24px);
+}
+.poster-ticket .scratch-prize-balloon-zone .recipient-info strong.name-long,
+.poster-ticket .scratch-prize-balloon-zone.has-photo .recipient-info strong.name-long {
+  font-size:clamp(10px,5.7cqw,21px);
+}
+.poster-ticket .scratch-prize-balloon-zone .recipient-info strong.name-extra-long,
+.poster-ticket .scratch-prize-balloon-zone.has-photo .recipient-info strong.name-extra-long {
+  font-size:clamp(9px,4.7cqw,17px);
+}
+.poster-ticket .recipient-info .scratch-sparkles,
+.poster-ticket .scratch-prize-balloon-zone.has-photo .recipient-info .scratch-sparkles {
+  color:#a47c25;
+  font-size:clamp(9px,4.5cqw,15px);
+  line-height:1;
+  letter-spacing:3px;
+}
+.poster-ticket.is-revealed .scratch-prize-balloon-zone {animation:none}
+.poster-ticket.reveal-pop .scratch-prize-balloon-zone {animation:prize-glow .65s ease-out}
+.poster-ticket.reveal-pop .recipient-photo {animation:portrait-pop .65s cubic-bezier(.2,.65,.3,1)}
+@keyframes portrait-pop {
+  0% {transform:scale(.88)}
+  60% {transform:scale(1.045)}
+  100% {transform:scale(1)}
+}
+@media(prefers-reduced-motion:reduce) {
+  .poster-ticket.reveal-pop .scratch-prize-balloon-zone,
+  .poster-ticket.reveal-pop .recipient-photo {animation:none}
+}
